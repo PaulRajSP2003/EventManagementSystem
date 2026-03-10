@@ -1,0 +1,803 @@
+// src/user/pages/admin/UserEdit.tsx
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
+import { motion } from 'framer-motion';
+import AssignRole from '../components/AssignRole';
+import type { AssignRole as AssignRoleType } from '../../../types';
+import AccessAlert from '../components/AccessAlert';
+import { PAGE_PERMISSIONS, fetchPermissionData, isAdmin } from '../permission';
+import { getUserById, updateUser } from './api/UserData';
+
+// Skeleton (unchanged)
+const UserEditSkeleton = () => {
+  return (
+    <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 w-64 bg-gray-200 rounded"></div>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i}>
+                <div className="h-4 w-32 bg-gray-200 rounded mb-2"></div>
+                <div className="h-10 w-full bg-gray-100 rounded-lg"></div>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-6 border-t border-slate-100">
+            <div className="pb-5">
+              <div className="h-6 w-40 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 w-72 bg-gray-200 rounded"></div>
+            </div>
+            <div className="h-16 bg-gray-100 rounded-lg"></div>
+          </div>
+
+          <div className="pt-6 border-t border-slate-100">
+            <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
+            <div className="h-24 w-full bg-gray-100 rounded-lg"></div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+          <div className="h-10 w-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// permissionStructure (unchanged)
+const permissionStructure = [
+  {
+    label: 'Student',
+    permissionId: 'STUDENT_GROUP',
+    items: [
+      { name: 'Student List', permissionId: PAGE_PERMISSIONS.STUDENT_LIST },
+      { name: 'Student Details', permissionId: PAGE_PERMISSIONS.STUDENT_DETAIL },
+      { name: 'New Student', permissionId: PAGE_PERMISSIONS.STUDENT_NEW },
+      { name: 'Edit Student', permissionId: PAGE_PERMISSIONS.STUDENT_EDIT },
+      { name: 'Student Status Update', permissionId: PAGE_PERMISSIONS.STUDENT_STATUS_UPDATE },
+    ],
+  },
+  {
+    label: 'Leader',
+    permissionId: 'LEADER_GROUP',
+    items: [
+      { name: 'Leader List', permissionId: PAGE_PERMISSIONS.LEADER_LIST },
+      { name: 'Leader Details', permissionId: PAGE_PERMISSIONS.LEADER_DETAIL },
+      { name: 'New Leader', permissionId: PAGE_PERMISSIONS.LEADER_NEW },
+      { name: 'Edit Leader', permissionId: PAGE_PERMISSIONS.LEADER_EDIT },
+      { name: 'Leader Status Update', permissionId: PAGE_PERMISSIONS.LEADER_STATUS_UPDATE },
+    ],
+  },
+  {
+    label: 'Groups',
+    permissionId: 'GROUPS',
+    items: [
+      { name: 'Following Groups', permissionId: PAGE_PERMISSIONS.FOLLOWING_GROUP },
+      { name: 'Sub Groups', permissionId: PAGE_PERMISSIONS.SUB_GROUP },
+    ],
+  },
+  {
+    label: 'Medical',
+    permissionId: 'MEDICAL_GROUP',
+    items: [
+      { name: 'Medical Report List', permissionId: PAGE_PERMISSIONS.MEDICAL_REPORT_LIST },
+      { name: 'Medical Report Details', permissionId: PAGE_PERMISSIONS.MEDICAL_REPORT_DETAIL },
+      { name: 'New Medical Report', permissionId: PAGE_PERMISSIONS.MEDICAL_REPORT_NEW },
+      { name: 'Edit Medical Report', permissionId: PAGE_PERMISSIONS.MEDICAL_REPORT_EDIT },
+      { name: 'Add Treatment', permissionId: PAGE_PERMISSIONS.MEDICAL_TREATMENT_ADD },
+    ],
+  },
+  {
+    label: 'Room Management',
+    permissionId: 'KEY_MANAGEMENT',
+    items: [
+      { name: 'Room View', permissionId: PAGE_PERMISSIONS.VIEW_ROOM },
+      { name: 'Key Handling', permissionId: PAGE_PERMISSIONS.KEY_HANDING },
+      { name: 'Room Leader Assign', permissionId: PAGE_PERMISSIONS.ROOM_LEADER_ASSIGN },
+    ],
+  },
+];
+
+// PermissionsSection (unchanged)
+interface PermissionsSectionProps {
+  permissions: number[];
+  onPermissionChange: (permissionId: number, isEnabled: boolean) => void;
+  disabled?: boolean;
+}
+
+const PermissionsSection: React.FC<PermissionsSectionProps> = ({
+  permissions,
+  onPermissionChange,
+  disabled = false,
+}) => {
+  const handleGroupToggle = (
+    group: (typeof permissionStructure)[0],
+    shouldEnable: boolean
+  ) => {
+    if (disabled) return;
+    group.items.forEach((item) => {
+      onPermissionChange(item.permissionId as number, shouldEnable);
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {permissionStructure.slice(0, 2).map((group) => {
+          const allEnabled = group.items.every((item) =>
+            permissions.includes(item.permissionId as number)
+          );
+
+          return (
+            <div
+              key={group.permissionId}
+              className={`p-5 border border-slate-200 rounded-xl bg-white shadow-sm ${disabled ? 'opacity-75' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <span className="font-semibold text-slate-800 text-base">{group.label}</span>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleGroupToggle(group, !allEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    allEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                  } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                      allEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {group.items.map((item) => {
+                  const isEnabled = permissions.includes(item.permissionId as number);
+
+                  return (
+                    <div key={item.permissionId} className="flex items-center justify-between py-1">
+                      <span className="text-sm text-slate-700 font-medium">{item.name}</span>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => !disabled && onPermissionChange(item.permissionId as number, !isEnabled)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+                          isEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                        } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                            isEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {permissionStructure.slice(2).map((group) => {
+          const allEnabled = group.items.every((item) =>
+            permissions.includes(item.permissionId as number)
+          );
+
+          return (
+            <div
+              key={group.permissionId}
+              className={`p-5 border border-slate-200 rounded-xl bg-white shadow-sm ${disabled ? 'opacity-75' : ''}`}
+            >
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                <span className="font-semibold text-slate-800 text-base">{group.label}</span>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleGroupToggle(group, !allEnabled)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                    allEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                  } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                      allEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {group.items.map((item) => {
+                  const isEnabled = permissions.includes(item.permissionId as number);
+
+                  return (
+                    <div key={item.permissionId} className="flex items-center justify-between py-1">
+                      <span className="text-sm text-slate-700 font-medium">{item.name}</span>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => !disabled && onPermissionChange(item.permissionId as number, !isEnabled)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
+                          isEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                        } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+                            isEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const UserEdit = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();  
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showSuccessActions, setShowSuccessActions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [formDisabled, setFormDisabled] = useState(false);
+
+  const [formData, setFormData] = useState<{
+    id: number;
+    name: string;
+    email: string;
+    contactNumber: string;
+    role: string;
+    isActive: boolean;
+    password?: string;
+    confirmPassword?: string;
+    permissions: number[];
+    remarks: string;
+    assignRole: number;
+  } | null>(null);
+
+  // Check admin access
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const permissionData = await fetchPermissionData();
+        setUserRole(permissionData.role);
+      } catch (err) {
+        console.error('Error fetching permission data:', err);
+        setUserRole('user'); // Default to user on error
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+    
+    checkAccess();
+  }, []);
+
+  // Load user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (checkingAccess) return;
+      
+      setLoading(true);
+      try {
+        const userToEdit = await getUserById(parseInt(id!, 10));
+        if (userToEdit) {
+          setFormData({
+            id: userToEdit.id,
+            name: userToEdit.name,
+            email: userToEdit.email,
+            contactNumber: userToEdit.contactNumber,
+            role: userToEdit.role || 'user',
+            isActive: userToEdit.isActive ?? true,
+            permissions: userToEdit.permissions || [],
+            remarks: userToEdit.remarks || '',
+            assignRole: userToEdit.assignRole || 0,
+          });
+        } else {
+          setError('User not found.');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load user.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [id, checkingAccess]);
+
+  // Auto-hide messages
+  useEffect(() => {
+    if (message || error) {
+      const timer = setTimeout(() => {
+        setMessage('');
+        setError('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message, error]);
+
+  // Check if user has admin access
+  if (!checkingAccess && !isAdmin(userRole)) {
+    return <AccessAlert message="Only administrators can edit users." />;
+  }
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    if (formDisabled) return;
+    const { name, value } = e.target;
+    setFormData((prev) => (prev ? { ...prev, [name]: value } : null));
+  };
+
+  const handleRoleSelect = (role: AssignRoleType | null) => {
+    if (formDisabled) return;
+    setFormData((prev) =>
+      prev ? { ...prev, assignRole: role ? role.id : 0 } : null
+    );
+  };
+
+  const handlePermissionChange = (permissionId: number, isEnabled: boolean) => {
+    if (formDisabled) return;
+    setFormData((prev) => {
+      if (!prev) return null;
+      const newPermissions = isEnabled
+        ? [...prev.permissions, permissionId]
+        : prev.permissions.filter((p) => p !== permissionId);
+      return { ...prev, permissions: newPermissions };
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData) return;
+
+    setIsSubmitting(true);
+    setMessage('');
+    setError('');
+    setShowSuccessActions(false);
+
+    // Password validation only if user entered something
+    if (formData.password || formData.confirmPassword) {
+      if (formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if ((formData.password?.length ?? 0) < 6) {
+        setError('Password must be at least 6 characters long.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    try {
+      const payload: any = {
+        id: formData.id,
+        name: formData.name.trim().toLocaleLowerCase(),
+        email: formData.email.trim().toLocaleLowerCase(),
+        contactNumber: formData.contactNumber.trim(),
+        role: formData.role.toLocaleLowerCase(),
+        isActive: formData.isActive,
+        permissions: formData.permissions,
+        remarks: formData.remarks.trim() || '',
+        assignRole: formData.assignRole,
+      };
+
+      // Only include password if it was entered
+      if (formData.password && formData.password.trim() !== '') {
+        payload.password = formData.password;
+      }
+
+      await updateUser(formData.id, payload);
+
+      setMessage('User updated successfully!');
+      setShowSuccessActions(true);
+      setFormDisabled(true); // optional
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user.');
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditAgain = () => {
+    setShowSuccessActions(false);
+    setMessage('');
+    setError('');
+    setFormDisabled(false);
+  };
+
+  // Show loading skeleton while checking access or loading user data
+  if (checkingAccess || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => navigate('/admin/users')}
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+              >
+                <FiArrowLeft /> Back
+              </button>
+              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
+              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Edit User</h1>
+            </div>
+            {id && (
+              <Link
+                to={`/admin/users/${id}`}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+              >
+                Visit Profile
+              </Link>
+            )}
+          </div>
+        </div>
+        <UserEditSkeleton />
+      </div>
+    );
+  }
+
+  if (!formData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => navigate('/admin/users')}
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+              >
+                <FiArrowLeft /> Back
+              </button>
+              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
+              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Edit User</h1>
+            </div>
+            {id && (
+              <Link
+                to={`/admin/users/${id}`}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+              >
+                Visit Profile
+              </Link>
+            )}
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 mt-8">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-6 py-4 rounded-xl">
+            <p className="font-medium">{error || 'User data not available.'}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+      {/* Sticky Header */}
+      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+        <div className="max-w-6xl mx-auto flex justify-between items-center">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => navigate('/admin/users')}
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+            >
+              <FiArrowLeft /> Back
+            </button>
+            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
+            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Edit User</h1>
+          </div>
+          <Link
+            to={`/admin/users/${id}`}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            Visit Profile
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6 flex-wrap sm:flex-nowrap">
+            <div>
+              <h2 className="text-xl font-bold text-slate-800">Edit User</h2>
+              <p className="text-slate-600 text-sm mt-1">
+                {formDisabled
+                  ? 'User successfully updated. Current data is shown below. Click "Edit Again" to modify further.'
+                  : 'Update the user account details below.'}
+              </p>
+            </div>
+
+            {(message || error) && (
+              <div
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 border min-w-[220px] ${
+                  message.includes('successfully') ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
+                }`}
+              >
+                {message.includes('successfully') && <FiCheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />}
+                <span>{message || error}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="p-6 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="name">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  disabled={formDisabled}
+                  required
+                  autoComplete='off'
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
+                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                  }`}
+                  placeholder="Enter full name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="email">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  disabled
+                  autoComplete='off'
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-100 text-slate-600 cursor-not-allowed text-sm"
+                  placeholder="user@example.com"
+                />
+                <p className="text-xs text-slate-500 mt-1">Email cannot be changed</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="role">
+                  User Role <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  disabled={formDisabled}
+                  autoComplete='off'
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
+                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                  }`}
+                >
+                  <option value="user">User</option>
+                  <option value="co-admin">Co-Admin</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="contactNumber">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    id="contactNumber"
+                    name="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={(e) => {
+                      if (formDisabled) return;
+                      if (/^\d*$/.test(e.target.value)) handleChange(e);
+                    }}
+                    disabled={formDisabled}
+                    required
+                    autoComplete='off'
+                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all pr-10 ${
+                      formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                    }`}
+                    placeholder="Enter phone number"
+                  />
+                  {formData.contactNumber.length >= 10 && !formDisabled && (
+                    <motion.div
+                      className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <FiCheckCircle className="text-green-500" size={20} />
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Always visible password fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="password">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData?.password || ''}
+                  onChange={handleChange}
+                  disabled={formDisabled}
+                  minLength={6}
+                  autoComplete='off'
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
+                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                  }`}
+                  placeholder="Leave blank to keep current password"
+                />
+                <p className="text-xs text-slate-500 mt-1">Minimum 6 characters (optional)</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="confirmPassword">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  value={formData?.confirmPassword || ''}
+                  onChange={handleChange}
+                  disabled={formDisabled}
+                  autoComplete='off'
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
+                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                  }`}
+                  placeholder="Re-enter if changing password"
+                />
+              </div>
+            </div>
+
+            {/* Account Status */}
+            <div className="pt-6 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-800">Account Status</h3>
+                <p className="text-slate-600 text-sm mt-1">
+                  {formData.isActive ? 'Active' : 'Inactive'}
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={formDisabled}
+                onClick={() => !formDisabled && setFormData(prev => prev ? { ...prev, isActive: !prev.isActive } : null)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  formData.isActive ? 'bg-indigo-600' : 'bg-slate-300'
+                } ${formDisabled ? 'cursor-not-allowed opacity-60' : ''}`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                    formData.isActive ? 'translate-x-5' : 'translate-x-0.5'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Role Assignment */}
+            <div className="pt-6 border-t border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Role Assignment</h3>
+              <div className={formDisabled ? 'opacity-70 pointer-events-none' : ''}>
+                <AssignRole
+                  onRoleSelect={handleRoleSelect}
+                  initialRoleId={formData.assignRole}
+                />
+              </div>
+            </div>
+
+            {/* Permissions */}
+            <div className="pt-6 border-t border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Page Permissions</h3>
+              <p className="text-slate-600 text-sm mb-6">Manage which pages this user can access.</p>
+              <PermissionsSection
+                permissions={formData.permissions}
+                onPermissionChange={handlePermissionChange}
+                disabled={formDisabled}
+              />
+            </div>
+
+            {/* Remarks */}
+            <div className="pt-6 border-t border-slate-100">
+              <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="remarks">
+                Remarks / Notes
+              </label>
+              <textarea
+                id="remarks"
+                name="remarks"
+                value={formData.remarks}
+                onChange={handleChange}
+                disabled={formDisabled}
+                rows={3}
+                className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all resize-none ${
+                  formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                }`}
+                placeholder="Any additional notes about this user..."
+              />
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-6">
+              <div className="flex items-center gap-2 text-blue-800">
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+                <span className="font-medium">Note:</span>
+              </div>
+              <p className="text-blue-700 text-sm mt-1 ml-7">
+                Password fields are optional — leave both blank to keep the current password.
+              </p>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+            {showSuccessActions ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/users/${id}`)}
+                  className="px-6 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                >
+                  User Profile
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEditAgain}
+                  className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                >
+                  Edit Again
+                </button>
+              </>
+            ) : (
+              <button
+                type="submit"
+                disabled={isSubmitting || formDisabled}
+                className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Updating...
+                  </>
+                ) : 'Update User'}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default UserEdit;

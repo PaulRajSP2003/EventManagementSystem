@@ -1,0 +1,845 @@
+// src/user/pages/leader/LeaderNew.tsx
+import { useState, useEffect, useRef } from 'react';
+import {
+  FiArrowLeft,
+  FiCheckCircle,
+  FiMapPin,
+  FiUser,
+  FiSave,
+  FiX,
+} from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import type { Leader } from '../../../types';
+import { leaderAPI } from '../api/LeaderData';
+import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
+import AccessAlert from '../components/AccessAlert';
+// Import the PlaceList API
+import PlaceAPI, { type PhotonFeature } from '../api/PlaceList';
+
+// We only use a subset of Leader fields in this form
+type LeaderFormData = Pick<
+  Leader,
+  | 'name'
+  | 'gender'
+  | 'place'
+  | 'contactNumber'
+  | 'whatsappNumber'
+  | 'churchName'
+  | 'staying'
+  | 'status'
+  | 'isFollowing'
+  | 'type'
+> & {
+  churchName: string;
+  remark: string;
+  registered_mode: string;
+  latitude?: number;
+  longitude?: number;
+};
+
+const LeaderNewSkeleton = () => (
+  <div className="max-w-5xl mx-auto px-4 mt-8">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-pulse">
+      <div className="p-6 border-b border-slate-100">
+        <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
+        <div className="h-4 w-64 bg-gray-200 rounded"></div>
+      </div>
+      <div className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i}>
+              <div className="h-4 w-32 bg-gray-200 rounded mb-2"></div>
+              <div className="h-10 w-full bg-gray-100 rounded-lg"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <div className="h-10 w-32 bg-gray-200 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Permission constant for this page
+const PAGE_ID = PAGE_PERMISSIONS.LEADER_NEW;
+
+const LeaderNew = () => {
+  const navigate = useNavigate();
+
+  // Permission data state
+  const [permissionData, setPermissionData] = useState<PermissionData | null>(null);
+  const [permissionLoading, setPermissionLoading] = useState(true);
+  const [permissionError, setPermissionError] = useState<boolean>(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Groups come from PermissionData.groups
+  const groups = permissionData?.groups || [];
+
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessActions, setShowSuccessActions] = useState(false);
+  const [registeredId, setRegisteredId] = useState<number | null>(null);
+  const [message, setMessage] = useState('');
+
+  const [showPlaceSuggestions, setShowPlaceSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [contactNumberError, setContactNumberError] = useState(false);
+  const [placeSuggestions, setPlaceSuggestions] = useState<PhotonFeature[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const churchNameRef = useRef<HTMLInputElement>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [typeOptions, setTypeOptions] = useState([
+    { value: 'participant', label: 'Participant' },
+    { value: 'guest', label: 'Guest' },
+    { value: 'leader2', label: 'Leader 2' },
+    { value: 'leader1', label: 'Leader 1' },
+  ]);
+
+  const [formData, setFormData] = useState<LeaderFormData>({
+    name: '',
+    gender: 'male',
+    place: '',
+    contactNumber: '',
+    whatsappNumber: '',
+    churchName: 'No',
+    staying: 'no',
+    status: 'registered',
+    isFollowing: 'no',
+    type: 'leader2',
+    remark: '',
+    registered_mode: 'offline',
+    latitude: undefined,
+    longitude: undefined,
+  });
+
+  // Fetch permission data on component mount
+  useEffect(() => {
+    const loadPermissions = async () => {
+      try {
+        setPermissionLoading(true);
+        setPermissionError(false);
+        const data = await fetchPermissionData();
+        setPermissionData(data);
+      } catch (error: any) {
+        console.error('Failed to load permissions:', error);
+        setPermissionData(null);
+        setPermissionError(true);
+        setAccessDenied(true);
+        
+        // Check for 403 Forbidden error
+        if (error.message === 'Forbidden' || error.message?.includes('403')) {
+          setErrorMessage("Access Forbidden: You don't have permission to access this resource");
+        } else if (error.message === 'Unauthorized' || error.message?.includes('401')) {
+          setErrorMessage("Unauthorized: Please log in to access this page");
+        } else {
+          setErrorMessage(error.message || 'Failed to load permissions');
+        }
+      } finally {
+        setPermissionLoading(false);
+        setLoading(false);
+      }
+    };
+
+    loadPermissions();
+  }, []);
+
+  // Permission check using ONLY permissionData
+  const hasAccess = () => {
+    if (!permissionData || accessDenied || permissionError) return false;
+    return canAccess(permissionData, PAGE_ID);
+  };
+
+  // Check if user has permission to view leader list
+  const canViewLeaderList = () => {
+    if (!permissionData || accessDenied || permissionError) return false;
+    return canAccess(permissionData, PAGE_PERMISSIONS.LEADER_LIST);
+  };
+
+  // Check if user is admin or co-admin
+  const isAdminUser = () => {
+    if (!permissionData || accessDenied || permissionError) return false;
+    return isAdminOrCoAdmin(permissionData);
+  };
+
+  const clearPlace = () => {
+    setFormData(prev => ({
+      ...prev,
+      place: '',
+      latitude: undefined,
+      longitude: undefined
+    }));
+    setPlaceSuggestions([]);
+    setShowPlaceSuggestions(false);
+  };
+
+  useEffect(() => {
+    if (!hasAccess()) return;
+
+    if (formData.isFollowing === 'no') {
+      setTypeOptions([
+        { value: 'participant', label: 'Participant' },
+        { value: 'guest', label: 'Guest' },
+      ]);
+      if (!['participant', 'guest'].includes(formData.type)) {
+        setFormData((prev) => ({ ...prev, type: 'participant' }));
+      }
+    } else {
+      setTypeOptions([
+        { value: 'leader2', label: 'Leader 2' },
+        { value: 'leader1', label: 'Leader 1' },
+      ]);
+      if (!['leader1', 'leader2'].includes(formData.type)) {
+        setFormData((prev) => ({ ...prev, type: 'leader2' }));
+      }
+    }
+  }, [formData.isFollowing, permissionData]);
+
+  // Search places using Photon API via PlaceList
+  const searchPlaces = async (query: string) => {
+    if (query.length < 2) {
+      setPlaceSuggestions([]);
+      setShowPlaceSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const features = await PlaceAPI.searchPlaces(query, 5);
+      setPlaceSuggestions(features);
+      setShowPlaceSuggestions(true);
+    } catch (error) {
+      console.error('Error searching places:', error);
+      setPlaceSuggestions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    if (showSuccessActions || isSubmitting || !hasAccess()) return;
+
+    const { name, value } = e.target;
+
+    if (['name', 'place'].includes(name)) {
+      if (/^[a-zA-Z\s.\-']*$/.test(value)) {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+      }
+    } else if (['contactNumber', 'whatsappNumber'].includes(name)) {
+      if (/^\d*$/.test(value)) {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+      }
+      if (name === 'contactNumber') setContactNumberError(false);
+    } else {
+      setFormData((prev) => ({ ...prev, [name as keyof LeaderFormData]: value }));
+    }
+
+    // Handle place search with debounce
+    if (name === 'place') {
+      // Clear previous timeout
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+
+      // Set new timeout for search
+      searchTimeoutRef.current = setTimeout(() => {
+        if (value.length >= 2) {
+          searchPlaces(value);
+        } else {
+          setShowPlaceSuggestions(false);
+          setPlaceSuggestions([]);
+        }
+      }, 300);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!hasAccess()) return;
+
+    if (showPlaceSuggestions && placeSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev + 1) % placeSuggestions.length);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev - 1 + placeSuggestions.length) % placeSuggestions.length);
+      } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+        e.preventDefault();
+        selectPlace(placeSuggestions[highlightedIndex]);
+      } else if (e.key === 'Escape') {
+        setShowPlaceSuggestions(false);
+        setHighlightedIndex(-1);
+      }
+    }
+  };
+
+  const selectPlace = (feature: PhotonFeature) => {
+    // Use PlaceAPI helper functions
+    const displayName = PlaceAPI.getPlaceDisplayName(feature);
+    const { lat, lng } = PlaceAPI.getPlaceCoordinates(feature);
+
+    setFormData((prev) => ({
+      ...prev,
+      place: displayName,
+      latitude: lat,
+      longitude: lng,
+    }));
+
+    setShowPlaceSuggestions(false);
+    setHighlightedIndex(-1);
+    setPlaceSuggestions([]);
+  };
+
+  const handleChurchNameFocus = () => {
+    if (hasAccess() && formData.churchName === 'No' && churchNameRef.current) {
+      churchNameRef.current.select();
+    }
+  };
+
+  const handleChurchNameBlur = () => {
+    if (hasAccess() && formData.churchName.trim() === '') {
+      setFormData((prev) => ({ ...prev, churchName: 'No' }));
+    }
+  };
+
+  const handleSameNumber = () => {
+    if (!hasAccess()) return;
+
+    if (formData.contactNumber.trim() === '') {
+      setContactNumberError(true);
+      document.getElementById('contactNumber')?.focus();
+      return;
+    }
+    setFormData((prev) => ({ ...prev, whatsappNumber: prev.contactNumber }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!hasAccess()) return;
+
+    setIsSubmitting(true);
+    setMessage('');
+
+    if (!formData.name.trim() || !formData.place.trim() || formData.contactNumber.length < 10) {
+      setMessage('Please fill all required fields correctly.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const finalChurchName =
+      formData.churchName.trim().toLowerCase() === 'no' || !formData.churchName.trim()
+        ? 'no'
+        : formData.churchName.trim();
+
+    // Include latitude and longitude in the payload
+    const payload: Omit<Leader, 'id'> = {
+      name: formData.name.trim().toLowerCase(),
+      gender: formData.gender.toLowerCase() as 'male' | 'female',
+      place: formData.place.trim().toLowerCase(),
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      contactNumber: formData.contactNumber.trim(),
+      whatsappNumber: formData.whatsappNumber.trim(),
+      churchName: finalChurchName,
+      staying: formData.staying,
+      status: formData.status,
+      isFollowing: formData.isFollowing === 'no' ? 'no' : formData.isFollowing,
+      type: formData.type,
+      remark: formData.remark.trim() || '',
+      registered_mode: 'offline',
+    };
+
+    
+    
+
+    try {
+      // Call the real API
+      const leaderId = await leaderAPI.create(payload);
+      setRegisteredId(leaderId);
+      setMessage('Leader has been registered successfully.');
+      setShowSuccessActions(true);
+    } catch (err) {
+      console.error('Error creating leader:', err);
+      
+      // Check if it's a permission error
+      const errorMsg = err instanceof Error ? err.message : 'Error registering leader';
+      if (errorMsg.toLowerCase().includes('forbidden') || 
+          errorMsg.toLowerCase().includes('unauthorized')) {
+        setAccessDenied(true);
+        setErrorMessage(errorMsg);
+      } else {
+        setMessage(errorMsg);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isFormDisabled = showSuccessActions || isSubmitting || !hasAccess();
+
+  const Header = () => (
+    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+      <div className="max-w-5xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => navigate(-1)}
+            disabled={!hasAccess()}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <FiArrowLeft /> Back
+          </button>
+          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
+          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Register New Leader</h1>
+        </div>
+        {/* Check if user has permission to view leader list */}
+        {canViewLeaderList() && (
+          <button
+            onClick={() => navigate('/user/leader')}
+            disabled={!hasAccess()}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Leader List
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  // Show loading while permissions are loading
+  if (permissionLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+        <Header />
+        <LeaderNewSkeleton />
+      </div>
+    );
+  }
+
+  // Show access denied if user doesn't have permission
+  if (!hasAccess() || accessDenied || permissionError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
+        <AccessAlert message={errorMessage || "You do not have permission to register new leaders."} />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+        <Header />
+        <LeaderNewSkeleton />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+      <Header />
+
+      <div className="max-w-5xl mx-auto px-4 mt-8">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+
+          {/* Success Overlay */}
+          <AnimatePresence>
+            {showSuccessActions && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center"
+              >
+                <motion.div
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 12 }}
+                >
+                  <FiCheckCircle className="w-16 h-16 text-green-500 mb-4 mx-auto" />
+                </motion.div>
+                <h2 className="text-2xl font-bold text-slate-800 mb-2">Registration Successful!</h2>
+                <p className="text-slate-600 mb-8 max-w-sm">{message}</p>
+
+                <div className="flex flex-wrap justify-center gap-4">
+                  <button
+                    onClick={() => navigate(`/user/leader/${registeredId}`)}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all shadow-md"
+                  >
+                    <FiUser /> View Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowSuccessActions(false);
+                      setFormData({
+                        name: '',
+                        gender: 'male',
+                        place: '',
+                        contactNumber: '',
+                        whatsappNumber: '',
+                        churchName: 'No',
+                        staying: 'no',
+                        status: 'registered',
+                        isFollowing: 'no',
+                        type: 'leader2',
+                        remark: '',
+                        registered_mode: 'offline',
+                        latitude: undefined,
+                        longitude: undefined,
+                      });
+                      setRegisteredId(null);
+                      setMessage('');
+                      setContactNumberError(false);
+                      setPlaceSuggestions([]);
+                    }}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-slate-300 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-all"
+                  >
+                    <FiSave /> Register Another
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={handleSubmit}>
+            <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6">
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">New Leader Registration</h2>
+                <p className="text-slate-600 text-sm mt-1">Enter the leader's information below.</p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-slate-500">New Record</div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Full Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    disabled={isFormDisabled}
+                    autoComplete="off"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
+                    placeholder="Enter full name"
+                  />
+                </div>
+
+                {/* Gender */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Gender *</label>
+                  <select
+                    name="gender"
+                    value={formData.gender}
+                    onChange={handleChange}
+                    required
+                    disabled={isFormDisabled}
+                    autoComplete="off"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+
+                {/* Place with Photon API Search */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Place <span className="text-red-500">*</span>
+                    {formData.latitude && formData.longitude && (
+                      <span className="ml-2 text-xs text-green-600">
+                        ✓ Location added
+                      </span>
+                    )}
+                  </label>
+
+                  <div className="relative">
+                    {/* Search Icon */}
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                      <FiMapPin />
+                    </span>
+
+                    <input
+                      type="text"
+                      name="place"
+                      value={formData.place}
+                      onChange={handleChange}
+                      onKeyDown={handleKeyDown}
+                      onBlur={() => {
+                        // Delay hiding to allow click on suggestions
+                        setTimeout(() => {
+                          setShowPlaceSuggestions(false);
+                          setHighlightedIndex(-1);
+                        }, 200);
+                      }}
+                      required
+                      disabled={isFormDisabled}
+                      autoComplete="nope"
+                      className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed focus:ring-2 focus:ring-indigo-100 focus:border-transparent outline-none transition-all"
+                      placeholder="Search for a city or location..."
+                    />
+
+                    {/* Clear Icon (X) - Only shows when there is text and not loading */}
+                    {!isSearching && formData.place && (
+                      <button
+                        type="button"
+                        onClick={clearPlace}
+                        disabled={isFormDisabled}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-red-500 transition-colors focus:outline-none"
+                        title="Clear location"
+                      >
+                        <FiX className="h-4 w-4" />
+                      </button>
+                    )}
+
+                    {/* Loading Spinner */}
+                    {isSearching && (
+                      <span className="absolute inset-y-0 right-0 flex items-center pr-3">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Place Suggestions Dropdown */}
+                  {showPlaceSuggestions && (
+                    <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+
+                      <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
+                        <span className="text-xs font-medium text-slate-500">SUGGESTED PLACES</span>
+                      </div>
+
+                      {[...placeSuggestions].sort((a: PhotonFeature, b: PhotonFeature) => {
+                        const isKerala = (feature: PhotonFeature): boolean => {
+                          const props = feature.properties;
+                          return props.state?.toLowerCase() === 'kerala' ||
+                            props.city?.toLowerCase().includes('kerala') ||
+                            (props.state?.toLowerCase() === 'kerala');
+                        };
+
+                        // Helper function to check if location is from India (but not Kerala)
+                        const isIndia = (feature: PhotonFeature): boolean => {
+                          const props = feature.properties;
+                          return props.country?.toLowerCase() === 'india' && !isKerala(feature);
+                        };
+
+                        const aIsKerala = isKerala(a);
+                        const bIsKerala = isKerala(b);
+                        const aIsIndia = isIndia(a);
+                        const bIsIndia = isIndia(b);
+
+                        // Priority: Kerala first, then other Indian locations, then rest
+                        if (aIsKerala && !bIsKerala) return -1;
+                        if (!aIsKerala && bIsKerala) return 1;
+                        if (aIsIndia && !bIsIndia && !bIsKerala) return -1;
+                        if (!aIsIndia && bIsIndia && !aIsKerala) return 1;
+                        return 0;
+                      }).map((feature: PhotonFeature, index: number) => {
+                        const isActive = highlightedIndex === index;
+                        const displayName = PlaceAPI.getPlaceDisplayName(feature);
+
+                        // 1. Get the main name (e.g., "Neyyattinkara")
+                        const mainName = feature.properties.name || "";
+
+                        // 2. Format the subtitle (e.g., "Trivandrum, Kerala, India")
+                        // We filter out the mainName from the parts to avoid "Neyyattinkara, Neyyattinkara..."
+                        const addressParts = [
+                          feature.properties.city,
+                          feature.properties.state,
+                          feature.properties.country
+                        ].filter((part: string | undefined): part is string =>
+                          Boolean(part && part !== mainName)
+                        );
+
+                        const subTitle = addressParts.join(", ");
+
+                        return (
+                          <div
+                            key={displayName}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              selectPlace(feature);
+                            }}
+                            className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors
+            ${isActive ? 'bg-slate-50' : 'hover:bg-slate-50'}
+            ${isFormDisabled ? 'opacity-50 cursor-not-allowed' : ''}
+            border-b border-slate-200 last:border-b-0`}
+                          >
+                            <div className={`mt-0.5 ${isActive ? 'text-red-500' : 'text-slate-400'}`}>
+                              <FiMapPin size={18} />
+                            </div>
+
+                            <div className="flex-1">
+                              {/* Top Line: Bold Name */}
+                              <div className={`text-sm font-semibold ${isActive ? 'text-indigo-600' : 'text-slate-700'}`}>
+                                {mainName}
+                              </div>
+
+                              {/* Bottom Line: Full Address */}
+                              <div className="text-xs text-slate-500 mt-0.5">
+                                {subTitle || "Location details unavailable"}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Empty State */}
+                      {placeSuggestions.length === 0 && formData.place.length >= 2 && !isSearching && (
+                        <div className="px-4 py-4 text-center text-sm text-slate-500">
+                          No places found / Enter manually
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Church Name */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Church Name</label>
+                  <input
+                    ref={churchNameRef}
+                    type="text"
+                    name="churchName"
+                    value={formData.churchName}
+                    onChange={handleChange}
+                    onFocus={handleChurchNameFocus}
+                    onBlur={handleChurchNameBlur}
+                    disabled={isFormDisabled}
+                    autoComplete="off"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    placeholder="Enter church name or 'No'"
+                  />
+                </div>
+
+                {/* Contact Number */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Contact Number *</label>
+                  <div className="relative">
+                    <input
+                      id="contactNumber"
+                      type="text"
+                      name="contactNumber"
+                      value={formData.contactNumber}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormDisabled}
+                      autoComplete="off"
+                      className={`w-full px-4 py-2.5 border rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed ${contactNumberError ? 'border-red-500' : 'border-slate-200'}`}
+                      placeholder="Enter Contact number"
+                    />
+                    {formData.contactNumber.length >= 10 && (
+                      <FiCheckCircle className="absolute right-3 top-3 text-green-500" />
+                    )}
+                  </div>
+                </div>
+
+                {/* WhatsApp Number */}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">WhatsApp Number *</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      name="whatsappNumber"
+                      value={formData.whatsappNumber}
+                      onChange={handleChange}
+                      required
+                      disabled={isFormDisabled}
+                      autoComplete="off"
+                      className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                      placeholder="Enter WhatsApp number"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSameNumber}
+                      disabled={isFormDisabled}
+                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      Same
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">Event Configuration</h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Group Following</label>
+                  <select
+                    name="isFollowing"
+                    value={formData.isFollowing}
+                    onChange={handleChange}
+                    disabled={isFormDisabled || !isAdminUser()}
+                    autoComplete="off"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <option value="no">Not Following</option>
+                    {groups.map((g) => (
+                      <option key={g} value={g}>
+                        Group {g}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Leader Type</label>
+                  <select
+                    name="type"
+                    value={formData.type}
+                    onChange={handleChange}
+                    disabled={isFormDisabled}
+                    autoComplete="off"
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm font-medium text-indigo-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {typeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Remarks / Notes</label>
+                <textarea
+                  name="remark"
+                  value={formData.remark || ''}
+                  onChange={handleChange}
+                  rows={3}
+                  disabled={isFormDisabled}
+                  autoComplete="off"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm resize-y h-32 disabled:opacity-60 disabled:cursor-not-allowed"
+                  placeholder="Youth coordinator, food preferences, special notes, allergies..."
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                type="submit"
+                disabled={isSubmitting || !hasAccess()}
+                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Registering...' : 'Register Leader'}
+                <FiSave className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LeaderNew;
