@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  FiArrowLeft, 
   FiEdit, 
   FiCalendar, 
   FiMail, 
@@ -17,6 +16,7 @@ import {
 import { eventAPI } from '../../api/EventData';
 import type { Event } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
+import StickyHeader from '../components/StickyHeader';
 
 const EventDetailsSkeleton = () => (
   <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
@@ -100,32 +100,18 @@ export default function EventDetails() {
   return (
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50 pb-12">
-        <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group"
-              >
-                <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                Back
-              </button>
-              <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block" />
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Event Details
-              </h1>
-            </div>
-            <div className="flex gap-3">
-              <button
-                disabled={loading || !!error}
-                onClick={() => navigate(`/owner/event/edit/${event?.id}`)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium shadow-sm disabled:opacity-50"
-              >
-                <FiEdit /> Edit Event
-              </button>
-            </div>
-          </div>
-        </div>
+        <StickyHeader 
+          title="Event Details"
+          onBack={() => navigate(-1)}
+        >
+          <button
+            disabled={loading || !!error}
+            onClick={() => navigate(`/owner/event/edit/${event?.id}`)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium shadow-sm disabled:opacity-50"
+          >
+            <FiEdit /> Edit Event
+          </button>
+        </StickyHeader>
 
         {loading ? (
           <EventDetailsSkeleton />
@@ -145,31 +131,31 @@ export default function EventDetails() {
           </div>
         ) : (
           <div className="max-w-6xl mx-auto px-4 mt-8 space-y-8">
-            <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
-              <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start gap-8">
+            <div className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 rounded-2xl p-5 sm:p-8 text-white shadow-xl relative overflow-hidden">
+              <div className="relative z-10 flex flex-col sm:flex-row justify-between items-start gap-6 sm:gap-8">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase border ${
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold tracking-wider uppercase border ${
                       event.isActive 
                       ? 'bg-emerald-400/20 border-emerald-400/30 text-emerald-200' 
                       : 'bg-slate-400/20 border-slate-400/30 text-slate-300'
                     }`}>
                       {event.isActive ? '● Active' : '○ Inactive'}
                     </span>
-                    <span className="text-indigo-200 text-sm font-medium flex items-center gap-1 capitalize">
+                    <span className="text-indigo-200 text-xs sm:text-sm font-medium flex items-center gap-1 capitalize">
                       <FiMapPin size={14} /> {event.location}
                     </span>
                   </div>
-                  <h1 className="text-3xl sm:text-4xl font-black mb-4 tracking-tight leading-tight capitalize">
+                  <h1 className="text-2xl sm:text-4xl font-black mb-3 sm:mb-4 tracking-tight leading-tight capitalize">
                     {event.eventName}
                   </h1>
-                  <p className="text-indigo-100 text-lg max-w-2xl leading-relaxed opacity-90 capitalize">
+                  <p className="text-indigo-100 text-sm sm:text-lg max-w-2xl leading-relaxed opacity-90 capitalize">
                     {event.eventDescription || 'No description provided for this event.'}
                   </p>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center min-w-[140px]">
-                  <div className="text-xs font-bold opacity-70 uppercase tracking-widest mb-1">Entry ID</div>
-                  <div className="text-4xl font-black tracking-tighter">#{event.id}</div>
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-center w-full sm:w-auto sm:min-w-[140px]">
+                  <div className="text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest mb-1">Entry ID</div>
+                  <div className="text-2xl sm:text-4xl font-black tracking-tighter">#{event.id}</div>
                 </div>
               </div>
               <div className="absolute -bottom-12 -right-12 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
@@ -177,48 +163,48 @@ export default function EventDetails() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Start Date */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-blue-100 text-blue-600">
-                    <FiCalendar />
+              <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-lg bg-blue-100 text-blue-600 flex-shrink-0">
+                    <FiCalendar size={18} />
                   </div>
                   <div className="overflow-hidden">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Start Date</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Start Date</p>
                     <p className="text-sm font-bold text-slate-800 truncate">{formatDate(event.from)}</p>
                   </div>
                 </div>
               </div>
 
               {/* End Date */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-purple-100 text-purple-600">
-                    <FiCalendar />
+              <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-lg bg-purple-100 text-purple-600 flex-shrink-0">
+                    <FiCalendar size={18} />
                   </div>
                   <div className="overflow-hidden">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">End Date</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">End Date</p>
                     <p className="text-sm font-bold text-slate-800 truncate">{formatDate(event.to)}</p>
                   </div>
                 </div>
               </div>
 
               {/* Email with Copy Action */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group/card relative">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-emerald-100 text-emerald-600">
-                    <FiMail />
+              <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group/card relative">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-lg bg-emerald-100 text-emerald-600 flex-shrink-0">
+                    <FiMail size={18} />
                   </div>
                   <div className="overflow-hidden flex-1">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</p>
-                    <p className="text-sm font-bold text-slate-800 truncate">{event.email || '—'}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email Address</p>
+                    <p className="text-sm font-bold text-slate-800 truncate lowercase">{event.email || '—'}</p>
                   </div>
                   {event.email && (
                     <button 
                       onClick={() => handleCopyEmail(event.email!)}
-                      className="p-2 hover:bg-slate-100 rounded-md text-slate-400 hover:text-emerald-600 transition-all active:scale-90"
+                      className="p-1.5 hover:bg-slate-100 rounded-md text-slate-400 hover:text-emerald-600 transition-all active:scale-90"
                       title="Copy Email"
                     >
-                      {copied ? <FiCheck className="text-emerald-600" /> : <FiCopy />}
+                      {copied ? <FiCheck size={14} className="text-emerald-600" /> : <FiCopy size={14} />}
                     </button>
                   )}
                 </div>
@@ -230,13 +216,13 @@ export default function EventDetails() {
               </div>
 
               {/* Phone */}
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-orange-100 text-orange-600">
-                    <FiPhone />
+              <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="p-2 sm:p-3 rounded-lg bg-orange-100 text-orange-600 flex-shrink-0">
+                    <FiPhone size={18} />
                   </div>
                   <div className="overflow-hidden">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Phone Number</p>
                     <p className="text-sm font-bold text-slate-800 truncate">{event.phoneNumber || '—'}</p>
                   </div>
                 </div>

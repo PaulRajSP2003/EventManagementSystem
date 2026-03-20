@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Mail, Phone, Shield, Calendar, User, Clock, FileText, Activity } from 'lucide-react';
-import { FiArrowLeft, FiCalendar, FiCheck, FiCopy } from 'react-icons/fi';
+import { FiCalendar, FiCheck, FiCopy } from 'react-icons/fi';
 import { adminAPI } from '../../api/AdminData';
 import { eventAPI } from '../../api/EventData';
 import type { Admin, Event } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
+import StickyHeader from '../components/StickyHeader';
 
 // --- SKELETON LOADER COMPONENT ---
 const AdminDetailsSkeleton = () => (
@@ -74,29 +75,22 @@ export default function AdminDetails() {
     loadData();
   }, [id]);
 
-  // Shared Header logic
-  const Header = (
-    <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group">
-            <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" /> Back
-          </button>
-          <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Admin Details</h1>
-        </div>
-        <button onClick={() => navigate('/owner/admin')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium shadow-sm">
-          <FiCalendar /> View List
-        </button>
-      </div>
-    </div>
-  );
-
   if (loading) {
     return (
       <OwnerLayout>
         <div className="min-h-screen bg-slate-50 pb-12">
-          {Header}
+                    <StickyHeader 
+            title="Admin Details"
+            onBack={() => navigate(-1)}
+          >
+            <button 
+              onClick={() => navigate('/owner/admin')} 
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium shadow-sm"
+            >
+              <FiCalendar /> View List
+            </button>
+          </StickyHeader>
+
           <AdminDetailsSkeleton />
         </div>
       </OwnerLayout>
@@ -107,7 +101,18 @@ export default function AdminDetails() {
     return (
       <OwnerLayout>
         <div className="min-h-screen bg-slate-50 pb-12">
-          {Header}
+                    <StickyHeader 
+            title="Admin Details"
+            onBack={() => navigate(-1)}
+          >
+            <button 
+              onClick={() => navigate('/owner/admin')} 
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium shadow-sm"
+            >
+              <FiCalendar /> View List
+            </button>
+          </StickyHeader>
+
           <div className="max-w-xl mx-auto mt-20 p-8 bg-white border border-red-100 rounded-2xl shadow-sm text-center">
             <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="text-red-500" size={32} />
@@ -126,7 +131,18 @@ export default function AdminDetails() {
   return (
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50 pb-12">
-        {Header}
+                <StickyHeader 
+          title="Admin Details"
+          onBack={() => navigate(-1)}
+        >
+          <button 
+            onClick={() => navigate('/owner/admin')} 
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium shadow-sm"
+          >
+            <FiCalendar /> View List
+          </button>
+        </StickyHeader>
+
 
         <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
           {/* Main Profile Card */}
@@ -135,26 +151,26 @@ export default function AdminDetails() {
               <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/subtle-white-feathers.png')]"></div>
             </div>
 
-            <div className="px-8 pb-8">
-              <div className="relative -mt-16 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div className="flex items-end space-x-6">
-                  <div className="h-32 w-32 rounded-3xl bg-white p-1.5 shadow-xl border border-slate-100">
+            <div className="px-5 sm:px-8 pb-8">
+              <div className="relative -mt-12 sm:-mt-16 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 text-center sm:text-left">
+                  <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-3xl bg-white p-1.5 shadow-xl border border-slate-100">
                     <div className="h-full w-full rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600">
-                      <User size={64} strokeWidth={1.5} />
+                      <User className="w-12 h-12 sm:w-16 sm:h-16" strokeWidth={1.5} />
                     </div>
                   </div>
-                  <div className="mb-2">
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight capitalize">{admin.name}</h1>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="bg-indigo-50 text-indigo-700 px-3 py-0.5 rounded-full text-xs font-bold uppercase">
+                  <div className="sm:mb-2 overflow-hidden w-full">
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight capitalize truncate">{admin.name}</h1>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mt-1">
+                      <span className="bg-indigo-50 text-indigo-700 px-3 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase">
                         {admin.role}
                       </span>
-                      <span className="text-slate-400 text-sm font-medium">ID: #{admin.id}</span>
+                      <span className="text-slate-400 text-xs sm:text-sm font-medium">ID: #{admin.id}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 border ${admin.isActive
+                <div className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 border ${admin.isActive
                     ? 'bg-emerald-50 border-emerald-100 text-emerald-700'
                     : 'bg-slate-50 border-slate-200 text-slate-500'
                   }`}>
@@ -186,34 +202,34 @@ export default function AdminDetails() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column: Connectivity */}
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-200">
               <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <Activity size={20} className="text-indigo-500" />
                 Connectivity
               </h2>
-              <div className="space-y-6">
+              <div className="space-y-5">
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1.5">
                     Email Address
                   </label>
 
-                  <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-3 bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
                     <Mail size={16} className="text-slate-400 shrink-0" />
 
-                    <span className="truncate text-sm text-slate-700 font-medium flex-1">
+                    <span className="truncate text-[13px] sm:text-sm text-slate-700 font-medium flex-1 lowercase">
                       {admin.email || '—'}
                     </span>
 
                     {admin.email && (
                       <button
                         onClick={() => handleCopyEmail(admin.email)}
-                        className="p-2 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-slate-100 transition-all active:scale-90"
+                        className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-white border border-transparent hover:border-emerald-100 transition-all active:scale-95 shadow-sm"
                         title="Copy Email"
                       >
                         {copied ? (
-                          <FiCheck className="text-emerald-600" />
+                          <FiCheck size={14} className="text-emerald-600" />
                         ) : (
-                          <FiCopy />
+                          <FiCopy size={14} />
                         )}
                       </button>
                     )}
@@ -221,10 +237,10 @@ export default function AdminDetails() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Phone Number</label>
-                  <div className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1.5">Phone Number</label>
+                  <div className="flex items-center gap-3 text-slate-700 font-medium bg-slate-50 p-2.5 sm:p-3 rounded-xl border border-slate-100">
                     <Phone size={16} className="text-slate-400" />
-                    <span className="text-sm">{admin.contactNumber || 'Not provided'}</span>
+                    <span className="text-[13px] sm:text-sm">{admin.contactNumber || 'Not provided'}</span>
                   </div>
                 </div>
               </div>

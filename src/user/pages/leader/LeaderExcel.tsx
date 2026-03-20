@@ -25,15 +25,16 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 import {
-  FiArrowLeft, FiDownload, FiUpload, FiFileText,
+  FiDownload, FiUpload, FiFileText,
   FiRefreshCw, FiArrowRight, FiX, FiCheckCircle, FiAlertCircle, FiMapPin,
   FiChevronLeft, FiChevronRight, FiUsers, FiSave,
 } from 'react-icons/fi';
+import { API_BASE } from '../../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fetchPermissionData, type PermissionData, isAdminOrCoAdmin } from '../permission';
-import AccessAlert from '../components/AccessAlert';
-import PlaceAPI, { type PhotonFeature } from '../api/PlaceList';
+import { StickyHeader, AccessAlert, PlaceSearchInput, type PlaceSelectResult } from '../components';
+import PlaceAPI from '../api/PlaceList';
 import * as XLSX from 'xlsx';
 
 // Types
@@ -169,7 +170,6 @@ const LeaderExcel = () => {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Duplicate states
-  // const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]); // unused
   const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
 
   // Pagination states
@@ -187,57 +187,6 @@ const LeaderExcel = () => {
 
   // Available groups from permission data
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
-
-  // Leader type options
-  const typeOptions = [
-    { value: 'participant', label: 'Participant' },
-    { value: 'guest', label: 'Guest' },
-    { value: 'leader2', label: 'Leader 2' },
-    { value: 'leader1', label: 'Leader 1' },
-  ];
-
-  // Fetch permission data on component mount
-  useEffect(() => {
-    const loadPermissions = async () => {
-      try {
-        setPermissionLoading(true);
-        setPermissionError(false);
-        const data = await fetchPermissionData();
-        setPermissionData(data);
-        setAvailableGroups(data.groups || []);
-
-        // Check if user is admin or co-admin using isAdminOrCoAdmin function
-        const hasAccess = isAdminOrCoAdmin(data);
-        setAccessDenied(!hasAccess);
-
-        if (!hasAccess) {
-          setErrorMessage("Only administrators and co-administrators can access the leader Excel import feature");
-        }
-      } catch (error: any) {
-        console.error('Failed to load permissions:', error);
-        setPermissionData(null);
-        setPermissionError(true);
-        setAccessDenied(true);
-
-        if (error.message === 'Forbidden' || error.message?.includes('403')) {
-          setErrorMessage("Access Forbidden: You don't have permission to access this resource");
-        } else if (error.message === 'Unauthorized' || error.message?.includes('401')) {
-          setErrorMessage("Unauthorized: Please log in to access this page");
-        } else {
-          setErrorMessage(error.message || 'Failed to load permissions');
-        }
-      } finally {
-        setPermissionLoading(false);
-      }
-    };
-
-    loadPermissions();
-  }, []);
-
-  // Check if user has admin or co-admin access
-  const hasAdminOrCoAdmin = () => {
-    return isAdminOrCoAdmin(permissionData);
-  };
 
   // Download template
   const downloadTemplate = () => {
@@ -268,21 +217,59 @@ const LeaderExcel = () => {
     XLSX.writeFile(wb, 'leader_import_template.xlsx');
   };
 
-  // Reset upload
-  const resetUpload = () => {
-    setCurrentStep('upload');
-    setFileName('');
-    setUploadError('');
-    setExcelData([]);
-    setExcelHeaders([]);
-    setColumnMapping([]);
-    setMappedLeaders([]);
-    setValidationErrors([]);
-    setCurrentPage(1);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  // Leader type options
+  const typeOptions = [
+    { value: 'participant', label: 'Participant' },
+    { value: 'guest', label: 'Guest' },
+    { value: 'leader2', label: 'Leader 2' },
+    { value: 'leader1', label: 'Leader 1' },
+  ];
+
+  // Fetch permission data on component mount
+  useEffect(() => {
+    const loadPermissions = async () => {
+      try {
+        setPermissionLoading(true);
+        setPermissionError(false);
+        const data = await fetchPermissionData();
+        setPermissionData(data);
+        if (data) {
+          setAvailableGroups(data.groups || []);
+
+          // Check if user is admin or co-admin using isAdminOrCoAdmin function
+          const hasAccess = isAdminOrCoAdmin(data);
+          setAccessDenied(!hasAccess);
+
+          if (!hasAccess) {
+            setErrorMessage("Only administrators and co-administrators can access the leader Excel import feature");
+          }
+        }
+      } catch (error: any) {
+        console.error('Failed to load permissions:', error);
+        setPermissionData(null);
+        setPermissionError(true);
+        setAccessDenied(true);
+
+        if (error.message === 'Forbidden' || error.message?.includes('403')) {
+          setErrorMessage("Access Forbidden: You don't have permission to access this resource");
+        } else if (error.message === 'Unauthorized' || error.message?.includes('401')) {
+          setErrorMessage("Unauthorized: Please log in to access this page");
+        } else {
+          setErrorMessage(error.message || 'Failed to load permissions');
+        }
+      } finally {
+        setPermissionLoading(false);
+      }
+    };
+
+    loadPermissions();
+  }, []);
+
+  // Check if user has admin or co-admin access
+  const hasAdminOrCoAdmin = () => {
+    return isAdminOrCoAdmin(permissionData);
   };
+
 
   // Handle file selection
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -386,7 +373,7 @@ const LeaderExcel = () => {
     const newMappings: ColumnMapping[] = [];
     const usedFields = new Set<keyof LeaderData>();
 
-    console.log('Excel Headers:', excelHeaders);
+
 
     const fieldKeywords: Record<keyof LeaderData, string[]> = {
       name: ['name', 'full name', 'leader name'],
@@ -425,7 +412,7 @@ const LeaderExcel = () => {
         );
 
         if (hasKeyword) {
-          console.log(`✓ Matched "${header}" to ${field}`);
+
 
           const fieldInfo = ALL_FIELDS.find(f => f.field === leaderField);
           newMappings.push({
@@ -746,39 +733,6 @@ const LeaderExcel = () => {
     );
   };
 
-  // Header component
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate('/user/leader')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-          >
-            <FiArrowLeft /> Back to Leaders
-          </button>
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Leader Excel Data Import</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {currentStep !== 'upload' && (
-            <button
-              onClick={resetUpload}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              <FiRefreshCw /> New Upload
-            </button>
-          )}
-          <button
-            onClick={downloadTemplate}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-          >
-            <FiDownload /> Download Template
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   // Step indicator component
   const StepIndicator = () => {
@@ -1207,74 +1161,13 @@ const LeaderExcel = () => {
       );
     }
 
-    const [suggestions, setSuggestions] = useState<{ [key: number]: PhotonFeature[] }>({});
-    const [showSuggestions, setShowSuggestions] = useState<{ [key: number]: boolean }>({});
-    const [highlightedIndex, setHighlightedIndex] = useState<{ [key: number]: number }>({});
-    const [isSearching, setIsSearching] = useState<{ [key: number]: boolean }>({});
     const [localInputValues, setLocalInputValues] = useState<{ [key: number]: string }>({});
-    const [dropdownPosition, setDropdownPosition] = useState<{ [key: number]: 'top' | 'bottom' }>({});
 
     const unverifiedLocations = mappedLeaders.filter(s => s && s.locationStatus !== 'verified');
     const verifiedCount = mappedLeaders.filter(s => s && s.locationStatus === 'verified').length;
     const notFoundCount = mappedLeaders.filter(s => s && s.locationStatus === 'not_found').length;
 
     const currentData = getCurrentPageData(mappedLeaders);
-
-    // Function to check available space and set dropdown position
-    const checkDropdownPosition = (inputElement: HTMLInputElement, globalIndex: number) => {
-      const rect = inputElement.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      const needsSpace = 300;
-
-      if (spaceBelow < needsSpace && spaceAbove > spaceBelow) {
-        setDropdownPosition(prev => ({ ...prev, [globalIndex]: 'top' }));
-      } else {
-        setDropdownPosition(prev => ({ ...prev, [globalIndex]: 'bottom' }));
-      }
-    };
-
-    // Search places
-    const searchPlaces = async (query: string, leaderIndex: number, inputElement?: HTMLInputElement) => {
-      if (!query.trim() || query.trim().length < 2) {
-        setSuggestions(prev => ({ ...prev, [leaderIndex]: [] }));
-        setShowSuggestions(prev => ({ ...prev, [leaderIndex]: false }));
-        setIsSearching(prev => ({ ...prev, [leaderIndex]: false }));
-        return;
-      }
-
-      try {
-        setIsSearching(prev => ({ ...prev, [leaderIndex]: true }));
-
-        if (inputElement) {
-          checkDropdownPosition(inputElement, leaderIndex);
-        }
-
-        const features = await PlaceAPI.searchPlaces(query, 10);
-        const limitedFeatures = features.slice(0, 4);
-        setSuggestions(prev => ({ ...prev, [leaderIndex]: limitedFeatures }));
-        setShowSuggestions(prev => ({ ...prev, [leaderIndex]: limitedFeatures.length > 0 }));
-        setHighlightedIndex(prev => ({ ...prev, [leaderIndex]: -1 }));
-      } catch (error) {
-        console.error('Error searching places:', error);
-        setSuggestions(prev => ({ ...prev, [leaderIndex]: [] }));
-      } finally {
-        setIsSearching(prev => ({ ...prev, [leaderIndex]: false }));
-      }
-    };
-
-    const handlePlaceChange = (globalIndex: number, value: string, inputElement?: HTMLInputElement) => {
-      setLocalInputValues(prev => ({ ...prev, [globalIndex]: value }));
-
-      if (value.trim().length >= 2) {
-        searchPlaces(value, globalIndex, inputElement);
-      } else {
-        setSuggestions(prev => ({ ...prev, [globalIndex]: [] }));
-        setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-      }
-    };
 
     const handlePlaceBlur = (globalIndex: number) => {
       const value = localInputValues[globalIndex] || '';
@@ -1287,56 +1180,18 @@ const LeaderExcel = () => {
         updated[globalIndex].longitude = undefined;
         return updated;
       });
-
-      setTimeout(() => {
-        setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-      }, 200);
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, globalIndex: number) => {
-      const leaderSuggestions = suggestions[globalIndex] || [];
-
-      if (showSuggestions[globalIndex] && leaderSuggestions.length > 0) {
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          setHighlightedIndex(prev => ({
-            ...prev,
-            [globalIndex]: ((prev[globalIndex] || -1) + 1) % leaderSuggestions.length
-          }));
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          setHighlightedIndex(prev => ({
-            ...prev,
-            [globalIndex]: ((prev[globalIndex] || 0) - 1 + leaderSuggestions.length) % leaderSuggestions.length
-          }));
-        } else if (e.key === 'Enter' && highlightedIndex[globalIndex] >= 0) {
-          e.preventDefault();
-          selectPlace(globalIndex, leaderSuggestions[highlightedIndex[globalIndex]]);
-        } else if (e.key === 'Escape') {
-          setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-          setHighlightedIndex(prev => ({ ...prev, [globalIndex]: -1 }));
-        }
-      }
-    };
-
-    const selectPlace = (globalIndex: number, feature: PhotonFeature) => {
-      const displayName = PlaceAPI.getPlaceDisplayName(feature);
-      const { lat, lng } = PlaceAPI.getPlaceCoordinates(feature);
-
-      setLocalInputValues(prev => ({ ...prev, [globalIndex]: displayName }));
-
+    const handlePlaceSelect = (globalIndex: number, result: PlaceSelectResult) => {
+      setLocalInputValues(prev => ({ ...prev, [globalIndex]: result.displayName }));
       setMappedLeaders(prev => {
         const updated = [...prev];
-        updated[globalIndex].place = displayName;
-        updated[globalIndex].latitude = lat;
-        updated[globalIndex].longitude = lng;
+        updated[globalIndex].place = result.displayName;
+        updated[globalIndex].latitude = result.latitude;
+        updated[globalIndex].longitude = result.longitude;
         updated[globalIndex].locationStatus = 'verified';
         return updated;
       });
-
-      setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-      setHighlightedIndex(prev => ({ ...prev, [globalIndex]: -1 }));
-      setSuggestions(prev => ({ ...prev, [globalIndex]: [] }));
     };
 
     const verifyAllLocations = async () => {
@@ -1394,7 +1249,6 @@ const LeaderExcel = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Original Place</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Verified Place</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Coordinates</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
               </tr>
@@ -1413,93 +1267,16 @@ const LeaderExcel = () => {
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">{leader.name}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{leader.originalPlace}</td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={localInputValues[globalIndex] !== undefined ? localInputValues[globalIndex] : (leader.place || '')}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            handlePlaceChange(globalIndex, newValue, e.target);
-                          }}
-                          onBlur={() => handlePlaceBlur(globalIndex)}
-                          onKeyDown={(e) => handleKeyDown(e, globalIndex)}
-                          onFocus={(e) => {
-                            if (leader.place && leader.place.trim().length >= 2) {
-                              searchPlaces(leader.place, globalIndex, e.target);
-                            }
-                          }}
-                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-100 focus:border-transparent outline-none pr-8
-                            ${leader.locationStatus === 'verified' ? 'border-green-300 bg-green-50' :
-                              leader.locationStatus === 'not_found' ? 'border-orange-300 bg-orange-50' :
-                                'border-slate-200'}`}
-                          placeholder="Type any location..."
-                          maxLength={1000}
-                        />
-
-                        {isSearching[globalIndex] && (
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                            <FiRefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
-                          </div>
-                        )}
-
-                        {showSuggestions[globalIndex] && suggestions[globalIndex]?.length > 0 && (
-                          <div
-                            className={`absolute z-50 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden
-                              ${dropdownPosition[globalIndex] === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}`}
-                          >
-                            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                              <span className="text-xs font-medium text-slate-500">
-                                SUGGESTED PLACES ({suggestions[globalIndex].length})
-                              </span>
-                            </div>
-                            {suggestions[globalIndex].map((feature: PhotonFeature, suggIdx: number) => {
-                              const isActive = highlightedIndex[globalIndex] === suggIdx;
-                              const mainName = feature.properties.name || "";
-                              const addressParts = [
-                                feature.properties.city,
-                                feature.properties.state,
-                                feature.properties.country
-                              ].filter((part: string | undefined): part is string =>
-                                Boolean(part && part !== mainName)
-                              );
-                              const subTitle = addressParts.join(", ");
-
-                              return (
-                                <div
-                                  key={`${globalIndex}-suggestion-${suggIdx}`}
-                                  onMouseDown={() => selectPlace(globalIndex, feature)}
-                                  className={`flex items-start gap-2 px-3 py-2 cursor-pointer transition-colors
-                                    ${isActive ? 'bg-indigo-50' : 'hover:bg-slate-50'}
-                                    border-b border-slate-100 last:border-b-0`}
-                                >
-                                  <FiMapPin className={`w-4 h-4 mt-0.5 ${isActive ? 'text-indigo-500' : 'text-slate-400'}`} />
-                                  <div className="flex-1 min-w-0">
-                                    <div className={`text-sm font-medium truncate ${isActive ? 'text-indigo-700' : 'text-slate-700'}`}>
-                                      {mainName}
-                                    </div>
-                                    <div className="text-xs text-slate-500 truncate">
-                                      {subTitle || "Location details unavailable"}
-                                    </div>
-                                  </div>
-                                  <span className="text-xs text-slate-400 flex-shrink-0">
-                                    {feature.properties.osm_value || 'place'}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      <PlaceSearchInput
+                        value={localInputValues[globalIndex] !== undefined ? localInputValues[globalIndex] : (leader.place || '')}
+                        onChange={(v) => setLocalInputValues(prev => ({ ...prev, [globalIndex]: v }))}
+                        onSelect={(result) => handlePlaceSelect(globalIndex, result)}
+                        onBlur={() => handlePlaceBlur(globalIndex)}
+                        status={leader.locationStatus}
+                        placeholder="Type any location..."
+                      />
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      {typeof leader.latitude === 'number' && typeof leader.longitude === 'number' ? (
-                        <span className="font-mono text-slate-600">
-                          {leader.latitude.toFixed(4)}, {leader.longitude.toFixed(4)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
+
                     <td className="px-4 py-3 text-sm">
                       {leader.locationStatus === 'verified' && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
@@ -1610,8 +1387,8 @@ const LeaderExcel = () => {
             };
           } else {
             // Check if the group exists in available groups
-            const matchingGroup = availableGroups.find(g => 
-              g.toLowerCase() === groupText || 
+            const matchingGroup = availableGroups.find(g =>
+              g.toLowerCase() === groupText ||
               groupText.includes(g.toLowerCase())
             );
 
@@ -1716,13 +1493,13 @@ const LeaderExcel = () => {
                     // Dynamic type options per leader
                     const dynamicTypeOptions: { value: 'participant' | 'guest' | 'leader2' | 'leader1', label: string }[] = leader.isFollowing === 'no'
                       ? [
-                          { value: 'participant', label: 'Participant' },
-                          { value: 'guest', label: 'Guest' },
-                        ]
+                        { value: 'participant', label: 'Participant' },
+                        { value: 'guest', label: 'Guest' },
+                      ]
                       : [
-                          { value: 'leader2', label: 'Leader 2' },
-                          { value: 'leader1', label: 'Leader 1' },
-                        ];
+                        { value: 'leader2', label: 'Leader 2' },
+                        { value: 'leader1', label: 'Leader 1' },
+                      ];
 
                     // Ensure type is valid for current options
                     if (!dynamicTypeOptions.some(opt => opt.value === leader.type)) {
@@ -1836,355 +1613,355 @@ const LeaderExcel = () => {
     );
   };
 
- // Preview step component - Optimized version with virtual scrolling and better performance
-const PreviewStep = () => {
-  const validCount = mappedLeaders.filter(s => s._isValid).length;
-  const invalidCount = mappedLeaders.length - validCount;
-  const followingCount = mappedLeaders.filter(s => s.isFollowing !== 'no').length;
-  const locationVerifiedCount = mappedLeaders.filter(s => s.locationStatus === 'verified').length;
+  // Preview step component - Optimized version with virtual scrolling and better performance
+  const PreviewStep = () => {
+    const validCount = mappedLeaders.filter(s => s._isValid).length;
+    const invalidCount = mappedLeaders.length - validCount;
+    const followingCount = mappedLeaders.filter(s => s.isFollowing !== 'no').length;
+    const locationVerifiedCount = mappedLeaders.filter(s => s.locationStatus === 'verified').length;
 
-  // State for expanded view
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showAllRecords, setShowAllRecords] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+    // State for expanded view
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [showAllRecords, setShowAllRecords] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-  // Helper function to validate and parse coordinates
-  const parseCoordinate = (value: any): number | null => {
-    if (value === null || value === undefined) return null;
-    if (typeof value === 'number' && !isNaN(value)) return value;
-    if (typeof value === 'string') {
-      if (value.toLowerCase() === 'yes' || value.toLowerCase() === 'no' || value.toLowerCase() === '') {
-        return null;
+    // Helper function to validate and parse coordinates
+    const parseCoordinate = (value: any): number | null => {
+      if (value === null || value === undefined) return null;
+      if (typeof value === 'number' && !isNaN(value)) return value;
+      if (typeof value === 'string') {
+        if (value.toLowerCase() === 'yes' || value.toLowerCase() === 'no' || value.toLowerCase() === '') {
+          return null;
+        }
+        const parsed = parseFloat(value);
+        if (!isNaN(parsed)) {
+          return parsed;
+        }
       }
-      const parsed = parseFloat(value);
-      if (!isNaN(parsed)) {
-        return parsed;
-      }
-    }
-    return null;
-  };
+      return null;
+    };
 
-  // Handle expand/collapse with loading state
-  const handleToggleExpand = async () => {
-    if (!isExpanded) {
+    // Handle expand/collapse with loading state
+    const handleToggleExpand = async () => {
+      if (!isExpanded) {
+        setIsLoading(true);
+        // Simulate a small delay to show loading state
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setIsExpanded(true);
+        setIsLoading(false);
+      } else {
+        setIsExpanded(false);
+        setShowAllRecords(false);
+      }
+    };
+
+    // Handle show all records with loading
+    const handleShowAllRecords = async () => {
       setIsLoading(true);
       // Simulate a small delay to show loading state
       await new Promise(resolve => setTimeout(resolve, 100));
-      setIsExpanded(true);
+      setShowAllRecords(true);
       setIsLoading(false);
-    } else {
-      setIsExpanded(false);
-      setShowAllRecords(false);
-    }
-  };
+    };
 
-  // Handle show all records with loading
-  const handleShowAllRecords = async () => {
-    setIsLoading(true);
-    // Simulate a small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 100));
-    setShowAllRecords(true);
-    setIsLoading(false);
-  };
+    // Determine which records to display
+    const displayRecords = showAllRecords
+      ? mappedLeaders
+      : mappedLeaders.slice(0, 10); // Show 10 records initially when expanded
 
-  // Determine which records to display
-  const displayRecords = showAllRecords 
-    ? mappedLeaders 
-    : mappedLeaders.slice(0, 10); // Show 10 records initially when expanded
-
-  return (
-    <div className="mb-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <p className="text-sm text-blue-600">Total Records</p>
-          <p className="text-2xl font-bold text-blue-700">{mappedLeaders.length}</p>
-        </div>
-        <div className="bg-green-50 rounded-lg p-4">
-          <p className="text-sm text-green-600">Valid Records</p>
-          <p className="text-2xl font-bold text-green-700">{validCount}</p>
-        </div>
-        <div className="bg-red-50 rounded-lg p-4">
-          <p className="text-sm text-red-600">Invalid Records</p>
-          <p className="text-2xl font-bold text-red-700">{invalidCount}</p>
-        </div>
-        <div className="bg-purple-50 rounded-lg p-4">
-          <p className="text-sm text-purple-600">Following Groups</p>
-          <p className="text-2xl font-bold text-purple-700">{followingCount}</p>
-        </div>
-        <div className="bg-teal-50 rounded-lg p-4">
-          <p className="text-sm text-teal-600">Locations Verified</p>
-          <p className="text-2xl font-bold text-teal-700">{locationVerifiedCount}</p>
-        </div>
-      </div>
-
-      {/* Table Preview - Using button toggle instead of details/summary */}
+    return (
       <div className="mb-6">
-        <button
-          onClick={handleToggleExpand}
-          className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors flex items-center justify-between"
-          disabled={isLoading}
-        >
-          <span className="text-sm font-medium text-slate-700">
-            {isLoading ? 'Loading...' : (isExpanded ? 'Hide Table View' : 'Show Table View')}
-          </span>
-          <span className="text-xs text-slate-500">
-            {mappedLeaders.length} total records
-          </span>
-        </button>
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <p className="text-sm text-blue-600">Total Records</p>
+            <p className="text-2xl font-bold text-blue-700">{mappedLeaders.length}</p>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4">
+            <p className="text-sm text-green-600">Valid Records</p>
+            <p className="text-2xl font-bold text-green-700">{validCount}</p>
+          </div>
+          <div className="bg-red-50 rounded-lg p-4">
+            <p className="text-sm text-red-600">Invalid Records</p>
+            <p className="text-2xl font-bold text-red-700">{invalidCount}</p>
+          </div>
+          <div className="bg-purple-50 rounded-lg p-4">
+            <p className="text-sm text-purple-600">Following Groups</p>
+            <p className="text-2xl font-bold text-purple-700">{followingCount}</p>
+          </div>
+          <div className="bg-teal-50 rounded-lg p-4">
+            <p className="text-sm text-teal-600">Locations Verified</p>
+            <p className="text-2xl font-bold text-teal-700">{locationVerifiedCount}</p>
+          </div>
+        </div>
 
-        {isExpanded && (
-          <div className="mt-4 overflow-x-auto border border-slate-200 rounded-lg">
-            {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="text-sm text-slate-500 mt-2">Loading records...</p>
-              </div>
-            ) : (
-              <>
-                <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Row</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Gender</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Place</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contact</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Group</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Staying</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Latitude</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Longitude</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-slate-200">
-                    {displayRecords.map((leader, idx) => {
-                      const latitude = parseCoordinate(leader.latitude);
-                      const longitude = parseCoordinate(leader.longitude);
+        {/* Table Preview - Using button toggle instead of details/summary */}
+        <div className="mb-6">
+          <button
+            onClick={handleToggleExpand}
+            className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors flex items-center justify-between"
+            disabled={isLoading}
+          >
+            <span className="text-sm font-medium text-slate-700">
+              {isLoading ? 'Loading...' : (isExpanded ? 'Hide Table View' : 'Show Table View')}
+            </span>
+            <span className="text-xs text-slate-500">
+              {mappedLeaders.length} total records
+            </span>
+          </button>
 
-                      return (
-                        <tr key={`preview-${idx}-${leader._rowIndex}`} className={leader._isValid ? '' : 'bg-red-50'}>
-                          <td className="px-4 py-3 text-sm text-slate-500">{leader._rowIndex}</td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-900">{leader.name}</td>
-                          <td className="px-4 py-3 text-sm capitalize text-slate-900">{leader.gender}</td>
-                          <td className="px-4 py-3 text-sm text-slate-900">{leader.place}</td>
-                          <td className="px-4 py-3 text-sm text-slate-900">{leader.contactNumber}</td>
-                          <td className="px-4 py-3 text-sm">
-                            {leader.isFollowing !== 'no' ? (
-                              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
-                                Group {leader.isFollowing}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-slate-900">
-                            {typeOptions.find(t => t.value === leader.type)?.label || leader.type}
-                          </td>
-                          <td className="px-4 py-3 text-sm">
-                            {leader.staying === 'yes' ? (
-                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Yes</span>
-                            ) : (
-                              <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">No</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-slate-900">
-                            {latitude !== null ? latitude.toFixed(6) : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-slate-900">
-                            {longitude !== null ? longitude.toFixed(6) : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                
-                {/* Show more/less button */}
-                {mappedLeaders.length > 10 && (
-                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
-                    {!showAllRecords ? (
-                      <button
-                        onClick={handleShowAllRecords}
-                        disabled={isLoading}
-                        className="w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center justify-center gap-2"
-                      >
-                        {isLoading ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-                            Loading...
-                          </>
-                        ) : (
-                          <>Show All {mappedLeaders.length} Records</>
-                        )}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => setShowAllRecords(false)}
-                        className="w-full text-sm text-slate-600 hover:text-slate-800 font-medium"
-                      >
-                        Show Less
-                      </button>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+          {isExpanded && (
+            <div className="mt-4 overflow-x-auto border border-slate-200 rounded-lg">
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                  <p className="text-sm text-slate-500 mt-2">Loading records...</p>
+                </div>
+              ) : (
+                <>
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Row</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Name</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Gender</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Place</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contact</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Group</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Staying</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Latitude</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Longitude</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                      {displayRecords.map((leader, idx) => {
+                        const latitude = parseCoordinate(leader.latitude);
+                        const longitude = parseCoordinate(leader.longitude);
+
+                        return (
+                          <tr key={`preview-${idx}-${leader._rowIndex}`} className={leader._isValid ? '' : 'bg-red-50'}>
+                            <td className="px-4 py-3 text-sm text-slate-500">{leader._rowIndex}</td>
+                            <td className="px-4 py-3 text-sm font-medium text-slate-900">{leader.name}</td>
+                            <td className="px-4 py-3 text-sm capitalize text-slate-900">{leader.gender}</td>
+                            <td className="px-4 py-3 text-sm text-slate-900">{leader.place}</td>
+                            <td className="px-4 py-3 text-sm text-slate-900">{leader.contactNumber}</td>
+                            <td className="px-4 py-3 text-sm">
+                              {leader.isFollowing !== 'no' ? (
+                                <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                                  Group {leader.isFollowing}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-900">
+                              {typeOptions.find(t => t.value === leader.type)?.label || leader.type}
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              {leader.staying === 'yes' ? (
+                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">Yes</span>
+                              ) : (
+                                <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">No</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-900">
+                              {latitude !== null ? latitude.toFixed(6) : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-sm text-slate-900">
+                              {longitude !== null ? longitude.toFixed(6) : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* Show more/less button */}
+                  {mappedLeaders.length > 10 && (
+                    <div className="px-4 py-3 bg-slate-50 border-t border-slate-200">
+                      {!showAllRecords ? (
+                        <button
+                          onClick={handleShowAllRecords}
+                          disabled={isLoading}
+                          className="w-full text-sm text-indigo-600 hover:text-indigo-800 font-medium flex items-center justify-center gap-2"
+                        >
+                          {isLoading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                              Loading...
+                            </>
+                          ) : (
+                            <>Show All {mappedLeaders.length} Records</>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setShowAllRecords(false)}
+                          className="w-full text-sm text-slate-600 hover:text-slate-800 font-medium"
+                        >
+                          Show Less
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Validation Errors */}
+        {invalidCount > 0 && (
+          <div className="mt-4 p-4 bg-red-50 rounded-lg">
+            <h4 className="text-sm font-medium text-red-800 mb-2">Validation Errors</h4>
+            <div className="max-h-40 overflow-y-auto">
+              {mappedLeaders.filter(s => !s._isValid).map((leader, idx) => (
+                <div key={`error-${idx}-${leader._rowIndex}`} className="text-sm text-red-600 mb-1">
+                  <span className="font-medium">Row {leader._rowIndex}:</span> {leader.name} - {leader._errors.join(', ')}
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Validation Errors */}
-      {invalidCount > 0 && (
-        <div className="mt-4 p-4 bg-red-50 rounded-lg">
-          <h4 className="text-sm font-medium text-red-800 mb-2">Validation Errors</h4>
-          <div className="max-h-40 overflow-y-auto">
-            {mappedLeaders.filter(s => !s._isValid).map((leader, idx) => (
-              <div key={`error-${idx}-${leader._rowIndex}`} className="text-sm text-red-600 mb-1">
-                <span className="font-medium">Row {leader._rowIndex}:</span> {leader.name} - {leader._errors.join(', ')}
-              </div>
-            ))}
+        {/* Warnings */}
+        {mappedLeaders.some(s => s._warnings.length > 0) && (
+          <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+            <h4 className="text-sm font-medium text-orange-800 mb-2">Warnings</h4>
+            <div className="max-h-40 overflow-y-auto">
+              {mappedLeaders.filter(s => s._warnings.length > 0).map((leader, idx) => (
+                <div key={`warning-${idx}-${leader._rowIndex}`} className="text-sm text-orange-600 mb-1">
+                  <span className="font-medium">Row {leader._rowIndex}:</span> {leader.name} - {leader._warnings.join(', ')}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Warnings */}
-      {mappedLeaders.some(s => s._warnings.length > 0) && (
-        <div className="mt-4 p-4 bg-orange-50 rounded-lg">
-          <h4 className="text-sm font-medium text-orange-800 mb-2">Warnings</h4>
-          <div className="max-h-40 overflow-y-auto">
-            {mappedLeaders.filter(s => s._warnings.length > 0).map((leader, idx) => (
-              <div key={`warning-${idx}-${leader._rowIndex}`} className="text-sm text-orange-600 mb-1">
-                <span className="font-medium">Row {leader._rowIndex}:</span> {leader.name} - {leader._warnings.join(', ')}
-              </div>
-            ))}
-          </div>
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={() => setCurrentStep('configuration')}
+            className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleImport}
+            disabled={isProcessing || validCount === 0}
+            className="px-6 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isProcessing ? (
+              <>
+                <FiRefreshCw className="animate-spin" />
+                Importing... ({importProgress.completed}/{importProgress.total})
+              </>
+            ) : (
+              <>
+                <FiSave />
+                Import {validCount} Leaders
+              </>
+            )}
+          </button>
         </div>
-      )}
-
-      <div className="flex justify-end gap-3 mt-6">
-        <button
-          onClick={() => setCurrentStep('configuration')}
-          className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
-        >
-          Back
-        </button>
-        <button
-          onClick={handleImport}
-          disabled={isProcessing || validCount === 0}
-          className="px-6 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isProcessing ? (
-            <>
-              <FiRefreshCw className="animate-spin" />
-              Importing... ({importProgress.completed}/{importProgress.total})
-            </>
-          ) : (
-            <>
-              <FiSave />
-              Import {validCount} Leaders
-            </>
-          )}
-        </button>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-const handleImport = async () => {
-  if (!hasAdminOrCoAdmin()) return;
+  const handleImport = async () => {
+    if (!hasAdminOrCoAdmin()) return;
 
-  setIsProcessing(true);
-  setImportProgress({ total: mappedLeaders.length, completed: 0, failed: 0 });
+    setIsProcessing(true);
+    setImportProgress({ total: mappedLeaders.length, completed: 0, failed: 0 });
 
-  const validLeaders = mappedLeaders.filter(s => s._isValid);
+    const validLeaders = mappedLeaders.filter(s => s._isValid);
 
-  const leadersPayload = validLeaders.map(leader => ({
-    name: leader.name?.trim() || '',
-    gender: leader.gender === 'female' ? 'F' : 'M',
-    place: leader.place?.trim() || '',
-    latitude: typeof leader.latitude === 'number' && !isNaN(leader.latitude) ? leader.latitude : null,
-    longitude: typeof leader.longitude === 'number' && !isNaN(leader.longitude) ? leader.longitude : null,
-    contactNumber: leader.contactNumber?.toString().trim() || '',
-    whatsappNumber: leader.whatsappNumber?.toString().trim() || leader.contactNumber?.toString().trim() || '',
-    churchName: leader.churchName?.trim() || '',
-    staying: leader.staying || 'no',
-    status: 'registered',
-    isFollowing: leader.isFollowing === 'no' ? 'no' : leader.isFollowing,
-    type: leader.type || 'participant',
-    remark: leader.remark?.trim() || '',
-    registeredMode: 'offline'
-  }));
+    const leadersPayload = validLeaders.map(leader => ({
+      name: leader.name?.trim() || '',
+      gender: leader.gender?.toLowerCase(),
+      place: leader.place?.trim() || '',
+      latitude: typeof leader.latitude === 'number' && !isNaN(leader.latitude) ? leader.latitude : null,
+      longitude: typeof leader.longitude === 'number' && !isNaN(leader.longitude) ? leader.longitude : null,
+      contactNumber: leader.contactNumber?.toString().trim() || '',
+      whatsappNumber: leader.whatsappNumber?.toString().trim() || leader.contactNumber?.toString().trim() || '',
+      churchName: leader.churchName?.trim() || '',
+      staying: leader.staying || 'no',
+      status: 'registered',
+      isFollowing: leader.isFollowing === 'no' ? 'no' : leader.isFollowing,
+      type: leader.type || 'participant',
+      remark: leader.remark?.trim() || '',
+      registeredMode: 'offline'
+    }));
 
-  try {
-    const apiUrl = 'https://localhost:7135/api/user/leaders/excel';
+    try {
+      const apiUrl = `${API_BASE}/user/leaders/excel`;
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(leadersPayload)
-    });
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status} - ${response.statusText}`;
-      try {
-        const errorText = await response.text();
-        if (errorText) {
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.message || errorJson.title || errorText;
-          } catch {
-            errorMessage = errorText.substring(0, 200);
-          }
-        }
-      } catch {
-      }
-      throw new Error(errorMessage);
-    }
-
-    const result = await response.json();
-    
-    if (result.success && result.data) {
-      const importResults = result.data.results?.map((r: any) => ({
-        rowIndex: r.rowIndex || 0,
-        success: r.success || false,
-        name: r.name || 'Unknown',
-        leaderId: r.leaderId,
-        error: r.error
-      })) || [];
-
-      setImportResults(importResults);
-      setImportProgress({
-        total: result.data.totalProcessed || mappedLeaders.length,
-        completed: result.data.successCount || 0,
-        failed: result.data.failedCount || 0
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(leadersPayload)
       });
-    } else {
-      console.error('Unexpected response structure:', result);
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status} - ${response.statusText}`;
+        try {
+          const errorText = await response.text();
+          if (errorText) {
+            try {
+              const errorJson = JSON.parse(errorText);
+              errorMessage = errorJson.message || errorJson.title || errorText;
+            } catch {
+              errorMessage = errorText.substring(0, 200);
+            }
+          }
+        } catch {
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const importResults = result.data.results?.map((r: any) => ({
+          rowIndex: r.rowIndex || 0,
+          success: r.success || false,
+          name: r.name || 'Unknown',
+          leaderId: r.leaderId,
+          error: r.error
+        })) || [];
+
+        setImportResults(importResults);
+        setImportProgress({
+          total: result.data.totalProcessed || mappedLeaders.length,
+          completed: result.data.successCount || 0,
+          failed: result.data.failedCount || 0
+        });
+      } else {
+        console.error('Unexpected response structure:', result);
+        setImportResults([{
+          rowIndex: 0,
+          success: false,
+          name: 'Bulk Import',
+          error: result.message || 'Unexpected response structure from server'
+        }]);
+      }
+
+    } catch (error) {
+      console.error('Error importing leaders:', error);
       setImportResults([{
         rowIndex: 0,
         success: false,
         name: 'Bulk Import',
-        error: result.message || 'Unexpected response structure from server'
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       }]);
+    } finally {
+      setIsProcessing(false);
+      setShowResults(true);
     }
-
-  } catch (error) {
-    console.error('Error importing leaders:', error);
-    setImportResults([{
-      rowIndex: 0,
-      success: false,
-      name: 'Bulk Import',
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    }]);
-  } finally {
-    setIsProcessing(false);
-    setShowResults(true);
-  }
-};
+  };
 
   const ResultsModal = () => {
     if (!showResults) return null;
@@ -2248,7 +2025,7 @@ const handleImport = async () => {
                         </p>
                       ) : (
                         <p className="text-sm text-red-600 mt-1">
-                          Error: {result.error}
+                          {result.error}
                         </p>
                       )}
                     </div>
@@ -2283,15 +2060,21 @@ const handleImport = async () => {
     );
   };
 
-  // Loading state
-  if (permissionLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
-        <LeaderExcelSkeleton />
-      </div>
-    );
-  }
+  // Reset upload
+  const resetUpload = () => {
+    setCurrentStep('upload');
+    setFileName('');
+    setUploadError('');
+    setExcelData([]);
+    setExcelHeaders([]);
+    setColumnMapping([]);
+    setMappedLeaders([]);
+    setValidationErrors([]);
+    setCurrentPage(1);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Access denied state
   if (permissionError || accessDenied || !hasAdminOrCoAdmin()) {
@@ -2302,9 +2085,42 @@ const handleImport = async () => {
     );
   }
 
+  if (permissionLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+        <StickyHeader title="Leader Excel Data Import" onBack={() => navigate('/user/leader')}>
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiDownload /> Download Template
+          </button>
+        </StickyHeader>
+        <LeaderExcelSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Leader Excel Data Import" onBack={() => navigate('/user/leader')}>
+        <div className="flex items-center gap-3">
+          {currentStep !== 'upload' && (
+            <button
+              onClick={resetUpload}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+            >
+              <FiRefreshCw /> New Upload
+            </button>
+          )}
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiDownload /> Download Template
+          </button>
+        </div>
+      </StickyHeader>
 
       <div className="max-w-7xl mx-auto px-4 mt-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

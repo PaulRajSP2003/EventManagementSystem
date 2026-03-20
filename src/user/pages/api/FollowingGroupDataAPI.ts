@@ -1,8 +1,9 @@
 // src/user/pages/api/FollowingGroupDataAPI.ts
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://localhost:7135/api';
-const BASE_URL = 'https://localhost:7135/api/user/remove/mentorGroup';
-const DOWNLOAD_BASE_URL = 'https://localhost:7135/api/user/following/group';
+import { API_BASE as CENTRAL_API_BASE } from '../../../config/api';
+const API_BASE = CENTRAL_API_BASE;
+const BASE_URL = `${API_BASE}/user/remove/mentorGroup`;
+const DOWNLOAD_BASE_URL = `${API_BASE}/user/following/group`;
 
 // Interfaces
 export interface FollowingGroup {
@@ -49,7 +50,7 @@ export const followingGroupAPI = {
       if (response.status === 401) {
         throw new Error('Unauthorized: Please login to fetch group structure');
       }
-      
+
       if (response.status === 403) {
         throw new Error('Forbidden: You do not have permission to fetch group structure');
       }
@@ -95,17 +96,17 @@ export const followingGroupAPI = {
         },
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const apiResponse = await response.json();
-      
+
       if (!apiResponse.success) {
         throw new Error(apiResponse.message || 'Failed to remove mentor group');
       }
-      
+
       return apiResponse.data;
     } catch (error) {
       console.error('API call error:', error);
@@ -155,7 +156,7 @@ export const followingGroupAPI = {
       }
 
       const blob = await response.blob();
-      
+
       // Check if blob is actually an Excel file or an error HTML
       if (blob.type === 'application/json' || blob.type.includes('html')) {
         const text = await blob.text();
@@ -170,18 +171,18 @@ export const followingGroupAPI = {
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = downloadUrl;
-      
+
       // Get filename from Content-Disposition header if available
       const contentDisposition = response.headers.get('Content-Disposition');
       let filename = 'following-groups.xlsx';
-      
+
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
         if (filenameMatch && filenameMatch[1]) {
           filename = filenameMatch[1].replace(/['"]/g, '');
         }
       }
-      
+
       link.download = filename;
       document.body.appendChild(link);
       link.click();

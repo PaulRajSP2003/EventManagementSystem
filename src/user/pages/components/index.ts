@@ -7,3 +7,7 @@ export { default as MainGroupList } from './MainGroupList';
 export { default as MedicalTreatmentComponent } from './MedicalTreatmentComponent';
 export { default as RoomListCompound } from './RoomListCompound';
 export { default as StudentListCompound } from './StudentListCompound';
+export { default as StickyHeader } from './StickyHeader';
+export { default as AccessAlert } from './AccessAlert';
+export { default as PlaceSearchInput } from './PlaceSearchInput';
+export type { PlaceSelectResult } from './PlaceSearchInput';

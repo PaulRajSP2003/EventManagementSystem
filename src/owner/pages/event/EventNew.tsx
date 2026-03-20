@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiArrowLeft,
   FiSave,
   FiInfo,
   FiCalendar,
@@ -12,6 +11,7 @@ import {
 import { eventAPI } from '../../api/EventData';
 import type { Event } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
+import StickyHeader from '../components/StickyHeader';
 
 const EventNewSkeleton = () => (
   <div className="min-h-screen bg-slate-50 pb-12">
@@ -124,45 +124,32 @@ export default function EventNew() {
   return (
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50 pb-12">
-        {/* Sticky Header */}
-        <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group"
-              >
-                <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                Back
-              </button>
-              <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block" />
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                New Event
-              </h1>
-            </div>
-            <button
-              onClick={() => navigate('/owner/event')}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              <FiCalendar /> View Events
-            </button>
-          </div>
-        </div>
+        <StickyHeader 
+          title="New Event"
+          onBack={() => navigate(-1)}
+        >
+          <button
+            onClick={() => navigate('/owner/event')}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiCalendar /> View Events
+          </button>
+        </StickyHeader>
 
         {loading ? (
           <EventNewSkeleton />
         ) : (
-          <div className="max-w-6xl mx-auto px-4 mt-8">
+          <div className="max-w-6xl mx-auto px-4 mt-4 sm:mt-8">
             <div className="lg:max-w-4xl mx-auto">
               <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 {/* Header */}
-                <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6 bg-slate-50">
+                <div className="p-4 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-6 bg-slate-50/50">
                   <div>
-                    <h2 className="text-xl font-bold text-slate-800">Create New Event</h2>
-                    <p className="text-slate-600 text-sm mt-1">Enter the event details below.</p>
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-800">Create New Event</h2>
+                    <p className="text-slate-500 text-xs sm:text-sm mt-1">Enter the event details below.</p>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-slate-500">New Record</div>
+                  <div className="hidden sm:block text-right">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">New Record</div>
                   </div>
                 </div>
 
@@ -191,11 +178,25 @@ export default function EventNew() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">Start Date *</label>
-                      <input type="date" name="from" value={formData.from ?? ''} onChange={handleChange} required className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all" />
+                      <input 
+                        type="date" 
+                        name="from" 
+                        value={formData.from ?? ''} 
+                        onChange={handleChange} 
+                        required 
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm transition-all" 
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">End Date *</label>
-                      <input type="date" name="to" value={formData.to ?? ''} onChange={handleChange} required className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all" />
+                      <input 
+                        type="date" 
+                        name="to" 
+                        value={formData.to ?? ''} 
+                        onChange={handleChange} 
+                        required 
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm transition-all" 
+                      />
                     </div>
                   </div>
 

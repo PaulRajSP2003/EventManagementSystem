@@ -1,21 +1,23 @@
 import { useEffect, useState } from 'react';
-import { 
-  CalendarDays, 
-  Users, 
-  Activity, 
+import {
+  CalendarDays,
+  Users,
+  Activity,
   ChevronRight,
   PlusCircle,
   UserPlus,
   Shield,
   Clock,
   CheckCircle,
-  FileSearch}
-from 'lucide-react';
+  FileSearch
+}
+  from 'lucide-react';
 import { eventAPI } from '../../api/EventData';
 import { adminAPI } from '../../api/AdminData';
 import type { Event, Admin } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
 import { Link, useNavigate } from 'react-router-dom';
+import StickyHeader from '../components/StickyHeader';
 
 // --- Skeleton Component ---
 const DashboardSkeleton = () => (
@@ -135,18 +137,18 @@ export default function OwnerDashboard() {
         eventAPI.getAll(),
         adminAPI.getAll()
       ]);
-      
+
       setEvents(eventsData);
       setFilteredEvents(eventsData.slice(0, 5)); // Show first 5 events
       setAdmins(adminsData);
-      
+
       const activeEvents = eventsData.filter(e => e.isActive).length;
       const upcomingEvents = eventsData.filter(e => new Date(e.from) > new Date()).length;
       const activeAdmins = adminsData.filter(a => a.isActive).length;
-      
+
       const eventGrowth = eventsData.length > 0 ? Math.round((activeEvents / eventsData.length) * 100) : 0;
       const adminGrowth = adminsData.length > 0 ? Math.round((activeAdmins / adminsData.length) * 100) : 0;
-      
+
       setStats({
         activeEvents,
         upcomingEvents,
@@ -187,31 +189,25 @@ export default function OwnerDashboard() {
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50">
         {/* Sticky Header - Consistent with EventList */}
-        <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Dashboard Overview
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Link
-                to="/owner/event/new"
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition text-sm font-medium shadow-sm"
-              >
-                <PlusCircle size={16} /> New Event
-              </Link>
-              <Link
-                to="/owner/admin/new"
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-              >
-                <UserPlus size={16} /> New Admin
-              </Link>
-            </div>
+        <StickyHeader 
+          title="Dashboard Overview"
+          showBack={false}
+        >
+          <div className="flex items-center gap-3">
+            <Link
+              to="/owner/event/new"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition text-sm font-medium shadow-sm"
+            >
+              <PlusCircle size={16} /> New Event
+            </Link>
+            <Link
+              to="/owner/admin/new"
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+            >
+              <UserPlus size={16} /> New Admin
+            </Link>
           </div>
-        </div>
+        </StickyHeader>
 
         {/* Main Content - Max width container */}
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -232,7 +228,7 @@ export default function OwnerDashboard() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  
+
                 </div>
               </div>
             </div>
@@ -251,37 +247,37 @@ export default function OwnerDashboard() {
               {/* Stats Cards - Compact design */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 {[
-                  { 
-                    label: 'Total Events', 
-                    value: events.length, 
-                    sub: `${stats.upcomingEvents} Upcoming`, 
-                    icon: CalendarDays, 
-                    color: 'from-blue-500 to-cyan-500', 
-                    trend: `${stats.eventGrowth}%` 
+                  {
+                    label: 'Total Events',
+                    value: events.length,
+                    sub: `${stats.upcomingEvents} Upcoming`,
+                    icon: CalendarDays,
+                    color: 'from-blue-500 to-cyan-500',
+                    trend: `${stats.eventGrowth}%`
                   },
-                  { 
-                    label: 'Active Events', 
-                    value: stats.activeEvents, 
-                    sub: 'Currently running', 
-                    icon: Activity, 
-                    color: 'from-emerald-500 to-green-500', 
-                    trend: `${stats.activeEvents}/${events.length}` 
+                  {
+                    label: 'Active Events',
+                    value: stats.activeEvents,
+                    sub: 'Currently running',
+                    icon: Activity,
+                    color: 'from-emerald-500 to-green-500',
+                    trend: `${stats.activeEvents}/${events.length}`
                   },
-                  { 
-                    label: 'Total Admins', 
-                    value: admins.length, 
-                    sub: 'Platform staff', 
-                    icon: Users, 
-                    color: 'from-purple-500 to-pink-500', 
-                    trend: `${stats.adminGrowth}%` 
+                  {
+                    label: 'Total Admins',
+                    value: admins.length,
+                    sub: 'Platform staff',
+                    icon: Users,
+                    color: 'from-purple-500 to-pink-500',
+                    trend: `${stats.adminGrowth}%`
                   },
-                  { 
-                    label: 'Active Admins', 
-                    value: stats.activeAdmins, 
-                    sub: 'Currently online', 
-                    icon: Shield, 
-                    color: 'from-amber-500 to-orange-500', 
-                    trend: `${stats.activeAdmins}/${admins.length}` 
+                  {
+                    label: 'Active Admins',
+                    value: stats.activeAdmins,
+                    sub: 'Currently online',
+                    icon: Shield,
+                    color: 'from-amber-500 to-orange-500',
+                    trend: `${stats.activeAdmins}/${admins.length}`
                   },
                 ].map((stat, i) => (
                   <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 hover:shadow-md transition-shadow">
@@ -305,28 +301,29 @@ export default function OwnerDashboard() {
                 {/* Recent Events Table - Left side (2/3) */}
                 <div className="lg:col-span-2">
                   <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-indigo-50 rounded-lg">
-                            <CalendarDays className="h-5 w-5 text-indigo-600" />
+                    <div className="px-4 sm:px-6 py-4 border-b border-slate-100/60">
+                      <div className="flex justify-between items-center gap-4">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl shrink-0 shadow-sm">
+                            <CalendarDays size={18} />
                           </div>
-                          <div>
-                            <h2 className="text-lg font-bold text-slate-800">Recent Events</h2>
-                            <p className="text-sm text-slate-500">Latest camp activities</p>
+                          <div className="min-w-0">
+                            <h2 className="text-base sm:text-lg font-black text-slate-800 tracking-tight truncate">Recent Events</h2>
+                            <p className="text-[10px] sm:text-sm font-medium text-slate-500 truncate">Latest camp activities</p>
                           </div>
                         </div>
-                        <Link 
-                          to="/owner/event" 
-                          className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                        <Link
+                          to="/owner/event"
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-100/50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all"
                         >
                           View All
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight size={14} className="stroke-[3px]" />
                         </Link>
                       </div>
                     </div>
-                    
-                    <div className="overflow-x-auto">
+
+                    {/* Desktop View Table */}
+                    <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full">
                         <thead className="bg-slate-50 border-b border-slate-100">
                           <tr>
@@ -346,8 +343,8 @@ export default function OwnerDashboard() {
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {filteredEvents.map((event) => (
-                            <tr 
-                              key={event.id} 
+                            <tr
+                              key={event.id}
                               className="hover:bg-slate-50 transition-colors cursor-pointer"
                               onClick={() => navigate(`/owner/event/${event.id}`)}
                             >
@@ -362,13 +359,13 @@ export default function OwnerDashboard() {
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-2 text-sm text-slate-600">
                                   <Clock className="h-3 w-3 text-slate-400" />
-                                  {new Date(event.from).toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric' 
-                                  })} - {new Date(event.to).toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric', 
-                                    year: 'numeric' 
+                                  {new Date(event.from).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })} - {new Date(event.to).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
                                   })}
                                 </div>
                               </td>
@@ -393,13 +390,41 @@ export default function OwnerDashboard() {
                           ))}
                         </tbody>
                       </table>
-                      
-                      {filteredEvents.length === 0 && (
-                        <div className="py-12 text-center text-slate-400 text-sm">
-                          No events found
-                        </div>
-                      )}
                     </div>
+
+                    {/* Mobile Card View */}
+                    <div className="sm:hidden divide-y divide-slate-100">
+                      {filteredEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="p-4 hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                          onClick={() => navigate(`/owner/event/${event.id}`)}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-2 h-2 rounded-full ${event.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                              <h3 className="text-sm font-bold text-slate-800 capitalize">{event.eventName}</h3>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getEventStatusColor(event)}`}>
+                              {getEventStatusText(event).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-500">
+                            <div className="flex items-center gap-1.5">
+                              <Clock size={12} className="text-slate-400" />
+                              <span>{new Date(event.from).toLocaleDateString()}</span>
+                            </div>
+                            <ChevronRight size={14} className="text-slate-300" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {filteredEvents.length === 0 && (
+                      <div className="py-12 text-center text-slate-400 text-sm">
+                        No events found
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -452,15 +477,15 @@ export default function OwnerDashboard() {
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500"
-                            style={{ 
-                              width: `${events.length ? (stats.activeEvents / events.length) * 100 : 0}%` 
+                            style={{
+                              width: `${events.length ? (stats.activeEvents / events.length) * 100 : 0}%`
                             }}
                           />
                         </div>
                       </div>
-                      
+
                       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
                         <div className="text-center p-3 bg-blue-50 rounded-lg">
                           <p className="text-xl font-bold text-blue-700">{stats.upcomingEvents}</p>

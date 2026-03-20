@@ -24,7 +24,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Validate token on mount and when page refreshes
   useEffect(() => {
     const validateOnMount = async () => {
-      await validateAndSetAuth();
+      // Only validate if we are in the owner section or if we already have owner storage data
+      const isOwnerPath = window.location.pathname.startsWith('/owner');
+      const hasOwnerData = localStorage.getItem('ownerEmail');
+
+      if (isOwnerPath || hasOwnerData) {
+        await validateAndSetAuth();
+      }
       setIsLoading(false);
     };
 
@@ -35,13 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Validate token with backend
       const isValid = await authAPI.validateToken();
-      
+
       if (isValid) {
         // Token is valid, get user data from localStorage
         const email = localStorage.getItem('ownerEmail');
         const id = localStorage.getItem('ownerId');
         const role = localStorage.getItem('ownerRole');
-        
+
         if (email) {
           setOwnerEmail(email);
           setOwnerId(id ? parseInt(id) : null);
@@ -50,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return true;
         }
       }
-      
+
       // Token is invalid or no user data
       setIsAuthenticated(false);
       setOwnerEmail(null);
@@ -65,11 +71,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = (email: string, id?: number, role?: string) => {
+    // Clear all existing storage for a fresh session
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (err) {
+      console.warn('Failed to clear storage:', err);
+    }
+
     setOwnerEmail(email);
     setOwnerId(id || null);
     setOwnerRole(role || 'owner');
     setIsAuthenticated(true);
-    
+
     // Store in localStorage
     localStorage.setItem('ownerEmail', email);
     if (id) localStorage.setItem('ownerId', id.toString());
@@ -85,21 +99,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setOwnerEmail(null);
       setOwnerId(null);
       setOwnerRole(null);
-      
-      // Clear localStorage
-      localStorage.removeItem('ownerEmail');
-      localStorage.removeItem('ownerId');
-      localStorage.removeItem('ownerRole');
+
+      // Clear localStorage and sessionStorage
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (err) {
+        console.warn('Failed to clear storage:', err);
+      }
     }
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      isAuthenticated, 
-      ownerEmail, 
+    <AuthContext.Provider value={{
+      isAuthenticated,
+      ownerEmail,
       ownerId,
       ownerRole,
-      login, 
+      login,
       logout,
       isLoading,
       validateAndSetAuth

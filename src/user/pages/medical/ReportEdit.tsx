@@ -11,8 +11,8 @@ import { medicalAPI } from '../api/MedicalData';
 // Skeleton (unchanged)
 const ReportEditSkeleton = () => {
   return (
-    <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8 space-y-6 animate-pulse">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
           <div className="h-6 w-40 bg-gray-200 rounded mb-2"></div>
           <div className="h-4 w-72 bg-gray-200 rounded"></div>
@@ -236,9 +236,8 @@ const ReportEdit = () => {
     }
   };
 
-  // Header component
   const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+    <div className="bg-white sticky top-0 z-10 px-4 py-3 border-b border-gray-100 hidden sm:block">
       <div className="max-w-5xl mx-auto flex justify-between items-center">
         <div className="flex items-center gap-6">
           <button
@@ -293,9 +292,9 @@ const ReportEdit = () => {
       {isLoading ? (
         <ReportEditSkeleton />
       ) : (
-        <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
-          <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6 flex-wrap sm:flex-nowrap">
+        <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8 space-y-6">
+          <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="p-4 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-6 flex-wrap sm:flex-nowrap">
               <div>
                 <h2 className="text-xl font-bold text-slate-800">
                   Edit Medical Report
@@ -325,7 +324,7 @@ const ReportEdit = () => {
               )}
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-4 sm:p-6 space-y-6">
               {/* Student Selection */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="patientId">
@@ -403,14 +402,14 @@ const ReportEdit = () => {
                   <button
                     type="button"
                     onClick={() => navigate(`/medical/${reportId}`)}
-                    className="px-6 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                    className="px-6 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium transition-all"
                   >
                     View Report
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowSuccessActions(false)}
-                    className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                    className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium transition-all"
                   >
                     Edit Again
                   </button>
@@ -419,7 +418,7 @@ const ReportEdit = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || !formData.patientId || !hasAccess()}
-                  className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isSubmitting ? (
                     <>

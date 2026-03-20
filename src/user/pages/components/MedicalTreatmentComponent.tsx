@@ -77,8 +77,8 @@ const MedicalTreatmentComponent: React.FC<MedicalTreatmentComponentProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mt-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 mt-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Treatment Update</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -88,10 +88,10 @@ const MedicalTreatmentComponent: React.FC<MedicalTreatmentComponentProps> = ({
         <button
           onClick={() => setIsAdding(true)}
           disabled={!canManageTreatments}
-          className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+          className={`flex items-center justify-center w-full sm:w-auto px-4 py-2.5 rounded-lg transition-all font-medium shadow-sm ${
             !canManageTreatments
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white border border-indigo-500 active:scale-[0.98]'
           }`}
           title={!canManageTreatments ? "You don't have permission to manage treatments" : "Add new treatment"}
         >
@@ -136,17 +136,17 @@ const MedicalTreatmentComponent: React.FC<MedicalTreatmentComponentProps> = ({
                 autoComplete='off'
               />
             </div>
-            <div className="flex gap-2 justify-end pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 justify-end pt-4 border-t border-gray-100 dark:border-gray-600 mt-2">
               <button
                 type="button"
                 onClick={resetForm}
-                className="flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex items-center justify-center px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 w-full sm:w-auto transition-colors"
               >
                 <FiX className="mr-1" /> Cancel
               </button>
               <button
                 type="submit"
-                className="flex items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                className="flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto shadow-sm transition-all active:scale-[0.98]"
               >
                 <FiSave className="mr-1" /> {editingIndex !== null ? 'Update' : 'Save'}
               </button>

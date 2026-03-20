@@ -1,4 +1,4 @@
-// D:\Project\campmanagementsystem\src\user\pages\permission.ts
+// D:\Project\campmanagementsystem_final\src\user\pages\permission.ts
 
 export interface PermissionData {
   name: string;
@@ -9,52 +9,37 @@ export interface PermissionData {
   groups: string[];
 }
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../../config/api';
+import { encryptData, decryptData } from '../utils/encryption';
+
 const PERMISSION_API_URL = `${API_BASE.replace(/\/$/, '')}/user/permission`;
 
 let _cachedPermissionData: PermissionData | null = null;
-export async function fetchPermissionData(): Promise<PermissionData> {
-  if (_cachedPermissionData) {
-    
+
+export async function fetchPermissionData(forceFresh = false): Promise<PermissionData | null> {
+  if (!forceFresh && _cachedPermissionData) {
     return _cachedPermissionData;
   }
 
   try {
-    
-
     const response = await fetch(PERMISSION_API_URL, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include', // Important: Ensure cookies are being sent
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
     });
 
-    
+    if (response.status === 401) {
+      clearPermissionCache();
+      return null;
+    }
 
     if (!response.ok) {
-      if (response.status === 401) {
-        console.error('Permissions Error: User is Unauthorized (401)');
-        throw new Error('Unauthorized');
-      }
-
-      console.warn('Permission API returned non-OK status. Falling back to guest defaults.', response.status);
-      return {
-        name: '',
-        email: '',
-        role: 'user',
-        eventId: 0,
-        groups: [],
-        permissions: []
-      };
+      return null;
     }
 
     const json = await response.json();
-    
-
     const data = json?.data;
 
-    // Mapping and sanitizing the data
     const result: PermissionData = {
       name: data?.name || '',
       email: data?.email || '',
@@ -66,17 +51,29 @@ export async function fetchPermissionData(): Promise<PermissionData> {
         : [],
     };
 
-    
-
     _cachedPermissionData = result;
+
+    try {
+      const stored = localStorage.getItem('login-data');
+      const existing = decryptData<any>(stored) || {};
+
+      localStorage.setItem('login-data', encryptData({
+        ...existing,
+        name: result.name,
+        role: result.role,
+        eventId: result.eventId,
+        email: result.email
+      }));
+    } catch { }
+
     return result;
 
   } catch (err) {
-    console.error('--- Permissions: Critical Fetch Error ---');
-    console.error(err);
-    throw err;
+    console.error('Permission fetch failed:', err);
+    return null;
   }
 }
+
 export function clearPermissionCache() {
   _cachedPermissionData = null;
 }
@@ -111,6 +108,8 @@ export const PAGE_PERMISSIONS = {
   VIEW_ROOM: 300,
   KEY_HANDING: 301,
   ROOM_LEADER_ASSIGN: 302,
+
+  TASK_DETAILS: 401
 } as const;
 
 export function hasPermission(
@@ -125,10 +124,15 @@ export function hasPermission(
 
 export function canAccess(
   user: { role?: string; permissions?: number[] } | undefined | null,
-  pageId: number
+  pageId: number | number[]
 ): boolean {
   if (!user) return false;
   if (user.role === 'admin' || user.role === 'co-admin') return true;
+
+  if (Array.isArray(pageId)) {
+    return pageId.some(id => hasPermission(user.permissions, id));
+  }
+
   return hasPermission(user.permissions, pageId);
 }
 

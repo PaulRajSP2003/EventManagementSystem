@@ -1,9 +1,8 @@
 // src/user/pages/leader/LeaderDetail.tsx
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { leaderAPI } from '../api/LeaderData';
 import {
-  FiArrowLeft,
   FiEdit,
   FiUser,
   FiPhone,
@@ -19,7 +18,7 @@ import {
 import { FaChurch, FaWhatsapp, FaMars, FaVenus } from 'react-icons/fa6';
 import EmptyState from '../components/EmptyState';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
-import AccessAlert from '../components/AccessAlert';
+import { StickyHeader, AccessAlert } from '../components';
 
 // Reusable Components
 const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
@@ -31,7 +30,7 @@ const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
 
 const InfoItem = ({ icon: Icon, label, value, color = "text-gray-500", onClick }: any) => (
   <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-    <div className={`p-2 rounded-full bg-white shadow-sm border border-gray-100 ${color} group-hover:scale-110 transition-transform`}>
+    <div className={`p-2 rounded-full bg-white border border-gray-100 ${color} group-hover:scale-110 transition-transform`}>
       <Icon className="text-lg" />
     </div>
     <div className="flex-1">
@@ -57,11 +56,11 @@ const SkeletonBlock = ({ className = "" }: { className?: string }) => (
 
 const LeaderDetailSkeleton = () => {
   return (
-    <div className="max-w-6xl mx-auto px-4 mt-6">
+    <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT COLUMN */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <SkeletonBlock className="h-2 w-full opacity-50" />
             <SkeletonBlock className="h-32 w-full rounded-none" />
             <div className="px-6 pb-6 text-center -mt-12">
@@ -77,7 +76,7 @@ const LeaderDetailSkeleton = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
             <SkeletonBlock className="h-5 w-24" />
             <div className="space-y-3">
               <SkeletonBlock className="h-10 w-full rounded-lg" />
@@ -85,7 +84,7 @@ const LeaderDetailSkeleton = () => {
               <SkeletonBlock className="h-11 w-full rounded-lg" />
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
             <SkeletonBlock className="h-5 w-32" />
             <SkeletonBlock className="h-14 w-full rounded-xl" />
             <SkeletonBlock className="h-14 w-full rounded-xl" />
@@ -93,7 +92,7 @@ const LeaderDetailSkeleton = () => {
         </div>
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-8 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-8">
             {[1, 2].map((i) => (
               <div key={i} className="space-y-4">
                 <div className="flex items-center gap-2">
@@ -173,7 +172,7 @@ const LeaderDetail: React.FC = () => {
         setPermissionData(null);
         setPermissionError(true);
         setAccessDenied(true);
-        
+
         // Check for 403 Forbidden error
         if (error.message === 'Forbidden' || error.message?.includes('403')) {
           setErrorMessage("Access Forbidden: You don't have permission to access this resource");
@@ -227,7 +226,7 @@ const LeaderDetail: React.FC = () => {
 
       const data = await leaderAPI.getDetail(numericId);
 
-      
+
       const processedData = {
         ...data,
         roomName: data?.roomName || data?.room_number || '',
@@ -250,12 +249,12 @@ const LeaderDetail: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching leader:', error);
-      
+
       // Check if it's a permission error
       const errorMsg = error instanceof Error ? error.message : 'Failed to load leader data';
-      if (errorMsg.toLowerCase().includes('forbidden') || 
-          errorMsg.toLowerCase().includes('unauthorized') ||
-          errorMsg.toLowerCase().includes('permission')) {
+      if (errorMsg.toLowerCase().includes('forbidden') ||
+        errorMsg.toLowerCase().includes('unauthorized') ||
+        errorMsg.toLowerCase().includes('permission')) {
         setAccessDenied(true);
         setErrorMessage(errorMsg);
       } else {
@@ -394,15 +393,15 @@ const LeaderDetail: React.FC = () => {
 
     } catch (error) {
       console.error('[DEBUG] Save error:', error);
-      
+
       // Check if it's a permission error
       const errorMsg = error instanceof Error ? error.message : "Failed to update leader";
-      if (errorMsg.toLowerCase().includes('forbidden') || 
-          errorMsg.toLowerCase().includes('unauthorized')) {
+      if (errorMsg.toLowerCase().includes('forbidden') ||
+        errorMsg.toLowerCase().includes('unauthorized')) {
         setAccessDenied(true);
         setErrorMessage(errorMsg);
       }
-      
+
       setMessage(errorMsg);
     } finally {
       setIsSaving(false);
@@ -500,42 +499,24 @@ const LeaderDetail: React.FC = () => {
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-            <div className="flex items-center gap-6">
-              <button onClick={() => navigate('/user/leader')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Leader Details</h1>
-            </div>
-            <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
-              <FiEdit /> Edit Profile
-            </button>
-          </div>
-        </div>
+        <StickyHeader title="Leader Details" onBack={() => navigate('/user/leader')}>
+          <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
+            <FiEdit /> Edit Profile
+          </button>
+        </StickyHeader>
         <LeaderDetailSkeleton />
       </div>
     );
   }
 
-  if ( loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-            <div className="flex items-center gap-6">
-              <button onClick={() => navigate('/user/leader')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Leader Details</h1>
-            </div>
-            <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
-              <FiEdit /> Edit Profile
-            </button>
-          </div>
-        </div>
+        <StickyHeader title="Leader Details" onBack={() => navigate('/user/leader')}>
+          <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
+            <FiEdit /> Edit Profile
+          </button>
+        </StickyHeader>
         <LeaderDetailSkeleton />
       </div>
     );
@@ -552,20 +533,11 @@ const LeaderDetail: React.FC = () => {
   if (notFound || !leader) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-            <div className="flex items-center gap-6">
-              <button onClick={() => navigate('/user/leader')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Leader Details</h1>
-            </div>
-            <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
-              <FiEdit /> Edit Profile
-            </button>
-          </div>
-        </div>
+        <StickyHeader title="Leader Details" onBack={() => navigate('/user/leader')}>
+          <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
+            <FiEdit /> Edit Profile
+          </button>
+        </StickyHeader>
         <div className="max-w-6xl mx-auto py-16 px-4 flex justify-center">
           <EmptyState
             title="Leader Not Found"
@@ -582,67 +554,50 @@ const LeaderDetail: React.FC = () => {
   const isFollowing = !!leader.isFollowing && leader.isFollowing !== "no";
   const followingLabel = isFollowing ? `Group ${leader.isFollowing}` : "Not Follow";
   // Show followingGroup if present and not absent
-  const shouldShowFollowingGroup = !!leader.followingGroup && leader.followingGroup.length > 0 && status !== "absent";
+  const shouldShowFollowingGroup = !!leader.followingGroup && leader.followingGroup.length > 0 && status !== 'absent';
   // Show subGroups if present and status is present
-  const shouldShowSubGroups = !!leader.subGroups && leader.subGroups.length > 0 && status === "present";
+  const shouldShowSubGroups = !!leader.subGroups && leader.subGroups.length > 0 && status === 'present';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => navigate('/user/leader')}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              <FiArrowLeft /> Back
-            </button>
-            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-              Leader Details
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <button
-                onClick={() => {
-                  if (leader?.status === 'registered' && hasEditPermission()) {
-                    navigate(`/user/leader/edit/${leader.id}`);
-                  } else {
-                    handleDisabledEditClick();
-                  }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${
-                  leader?.status === 'registered' && hasEditPermission()
-                    ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                    : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-                }`}
-              >
-                <FiEdit />
-                Edit Profile
-              </button>
-              {!(leader?.status === 'registered' && hasEditPermission()) && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                  {!hasEditPermission()
-                    ? 'Editing Disabled - No Edit Permission'
-                    : 'Only status "Registered" leaders can be edited.'}
-                </div>
-              )}
+      <StickyHeader title="Leader Details" onBack={() => navigate('/user/leader')}>
+        <div className="relative group">
+          <button
+            onClick={() => {
+              if (leader?.status === 'registered' && hasEditPermission()) {
+                navigate(`/user/leader/edit/${leader.id}`);
+              } else {
+                handleDisabledEditClick();
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${leader?.status === 'registered' && hasEditPermission()
+              ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+              : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+          >
+            <FiEdit />
+            Edit Profile
+          </button>
+          {!(leader?.status === 'registered' && hasEditPermission()) && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+              {!hasEditPermission()
+                ? 'Editing Disabled - No Edit Permission'
+                : 'Only status "Registered" leaders can be edited.'}
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      </StickyHeader>
 
-      <div className="max-w-6xl mx-auto px-4 mt-6">
+      <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* LEFT COLUMN */}
           <div className="space-y-6">
             {/* Profile Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden relative">
               <div className="h-2 w-full" style={{ backgroundColor: leader.tagColor || "#e91e63" }}></div>
               <div className="h-32 bg-gradient-to-r from-pink-600 to-red-600"></div>
               <div className="px-6 pb-6 text-center -mt-12 relative">
-                <div className="w-24 h-24 mx-auto bg-white p-1 rounded-full shadow-lg relative z-10" style={{ border: `4px solid ${leader.tagColor || "#e91e63"}` }}>
+                <div className="w-24 h-24 mx-auto bg-white p-1 rounded-full relative z-10" style={{ border: `4px solid ${leader.tagColor || "#e91e63"}` }}>
                   <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-pink-600">
                     {getInitials(leader.name)}
                   </div>
@@ -669,11 +624,11 @@ const LeaderDetail: React.FC = () => {
               </div>
             </div>
             {isAdmin() && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
                 <div className="flex gap-3">
                   <button
                     onClick={() => navigate(`/user/leader/history/${leader.id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
+                    className="flex-1 hidden sm:flex items-center justify-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
                   >
                     <FiClock /> History
                   </button>
@@ -683,13 +638,15 @@ const LeaderDetail: React.FC = () => {
                   >
                     <FiActivity /> Replacement
                   </button>
+
+
                 </div>
               </div>
             )}
 
             {/* Admin Actions Card */}
             {hasActionAccess() && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-3">
                   <h3 className="font-bold text-slate-800 flex items-center gap-2">
                     <FiActivity className="text-pink-500" /> Actions
@@ -736,9 +693,8 @@ const LeaderDetail: React.FC = () => {
                   </div>
 
                   <div
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      staying ? 'border-pink-500 bg-pink-50' : 'border-slate-200 hover:border-slate-300'
-                    } ${status !== 'present' && 'opacity-60'}`}
+                    className={`p-3 rounded-lg border-2 transition-all ${staying ? 'border-pink-500 bg-pink-50' : 'border-slate-200 hover:border-slate-300'
+                      } ${status !== 'present' && 'opacity-60'}`}
                   >
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -757,11 +713,10 @@ const LeaderDetail: React.FC = () => {
                   <button
                     disabled={!isDirty || isSaving || !hasActionAccess()}
                     onClick={handleSave}
-                    className={`w-full font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition shadow-lg ${
-                      isDirty && !isSaving && hasActionAccess()
-                        ? "bg-pink-600 hover:bg-pink-700 text-white shadow-pink-200"
-                        : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
-                    }`}
+                    className={`w-full font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition ${isDirty && !isSaving && hasActionAccess()
+                      ? "bg-pink-600 hover:bg-pink-700 text-white"
+                      : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+                      }`}
                   >
                     <FiSave />
                     {isSaving ? 'Saving...' : 'Update Leader'}
@@ -771,7 +726,7 @@ const LeaderDetail: React.FC = () => {
             )}
 
             {/* Quick Contact */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
               <h3 className="font-bold text-slate-800 mb-4">Quick Contact</h3>
               <div className="space-y-3">
                 <a
@@ -799,7 +754,7 @@ const LeaderDetail: React.FC = () => {
 
             {/* Remark */}
             {leader.remark && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5">
                 <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
                   <FiMessageSquare className="text-purple-500" />
                   Remark
@@ -907,15 +862,15 @@ const LeaderDetail: React.FC = () => {
                   <div className="space-y-4">
                     {leader.followingGroup.map((group: any, idx: number) => (
                       <div key={idx} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                        <div className="px-6 py-4 bg-indigo-50 border-b border-indigo-100">
+                        <div className="px-4 sm:px-6 py-4 bg-indigo-50 border-b border-indigo-100">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold flex-shrink-0">
                                 FG
                               </div>
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{group.followingName}</h4>
-                                <p className="text-xs text-indigo-600 mt-0.5">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-semibold text-gray-900 truncate">{group.followingName}</h4>
+                                <p className="text-xs text-indigo-600 mt-0.5 truncate">
                                   {group.students?.length || 0} Students • 2 Mentors
                                 </p>
                               </div>
@@ -925,7 +880,7 @@ const LeaderDetail: React.FC = () => {
                                 const msg = generateWhatsAppMessage(group, false);
                                 openWhatsApp(leader.whatsappNumber, msg);
                               }}
-                              className="bg-white hover:bg-indigo-600 text-indigo-600 hover:text-white p-3 rounded-full shadow-sm border border-indigo-200 transition-all duration-200"
+                              className="bg-white hover:bg-indigo-600 text-indigo-600 hover:text-white p-3 rounded-full shadow-sm border border-indigo-200 transition-all duration-200 flex-shrink-0 ml-2"
                               title="Send WhatsApp message"
                             >
                               <FaWhatsapp className="text-lg" />
@@ -934,46 +889,47 @@ const LeaderDetail: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-3 divide-x divide-gray-100 bg-gray-50">
-                          <div className="py-3 text-center">
-                            <div className="text-xl font-bold text-orange-500">
+                          <div className="py-3 text-center px-1">
+                            <div className="text-lg sm:text-xl font-bold text-orange-500">
                               {group.students?.filter((s: any) => s.status === "registered").length || 0}
                             </div>
-                            <div className="text-xs text-gray-500">Registered</div>
+                            <div className="text-xs text-gray-500 truncate">Registered</div>
                           </div>
-                          <div className="py-3 text-center">
-                            <div className="text-xl font-bold text-green-500">
+                          <div className="py-3 text-center px-1">
+                            <div className="text-lg sm:text-xl font-bold text-green-500">
                               {group.students?.filter((s: any) => s.status === "present").length || 0}
                             </div>
-                            <div className="text-xs text-gray-500">Present</div>
+                            <div className="text-xs text-gray-500 truncate">Present</div>
                           </div>
-                          <div className="py-3 text-center">
-                            <div className="text-xl font-bold text-red-500">
+                          <div className="py-3 text-center px-1">
+                            <div className="text-lg sm:text-xl font-bold text-red-500">
                               {group.students?.filter((s: any) => s.status === "absent").length || 0}
                             </div>
-                            <div className="text-xs text-gray-500">Absent</div>
+                            <div className="text-xs text-gray-500 truncate">Absent</div>
                           </div>
                         </div>
 
                         <div className="p-4 border-t border-gray-100">
                           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Mentors</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          {/* Mentors: stacked on mobile, grid on desktop */}
+                          <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-3">
                             {[group.leader1, group.leader2].map((mentor, index) => (
                               <div
                                 key={index}
                                 onClick={() => mentor?.id && goToLeader(mentor.id)}
-                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-indigo-50 transition cursor-pointer group"
+                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-indigo-50 transition cursor-pointer group w-full"
                               >
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-sm group-hover:scale-105 transition capitalize">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-sm group-hover:scale-105 transition capitalize flex-shrink-0">
                                   {mentor?.name?.charAt(0) || 'M'}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {mentor ? (
                                     <>
                                       <div className="font-medium text-gray-800 text-sm truncate capitalize">{mentor.name}</div>
-                                      <div className="text-xs text-gray-500 truncate capitalize">{mentor.place}</div>
+                                      <div className="text-xs text-gray-500 truncate capitalize">{mentor.place || 'Location not set'}</div>
                                     </>
                                   ) : (
-                                    <div className="text-sm text-red-500">Unassigned</div>
+                                    <div className="text-sm text-red-500 truncate">Unassigned</div>
                                   )}
                                 </div>
                               </div>
@@ -985,17 +941,23 @@ const LeaderDetail: React.FC = () => {
                           <div className="p-4 pt-0">
                             <div className="flex items-center justify-between mb-3">
                               <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Students</p>
-                              <span className="text-xs text-indigo-600 font-medium">View all →</span>
+                              <Link
+                                to={`/user/group/follow/${group.followingName?.charAt(1)}/${group.followingName}`}
+                                className="text-xs text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
+                              >
+                                View all →
+                              </Link>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            {/* Students: stacked on mobile, grid on desktop */}
+                            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2">
                               {group.students.slice(0, 4).map((student: any) => (
                                 <div
                                   key={student.id}
                                   onClick={() => goToStudent(student.id)}
-                                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-indigo-50 transition cursor-pointer border border-transparent hover:border-indigo-200"
+                                  className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-indigo-50 transition cursor-pointer border border-transparent hover:border-indigo-200 w-full"
                                 >
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-300 to-indigo-500 text-white flex items-center justify-center text-xs font-bold capitalize">
-                                    {typeof student.name === 'string' && student.name.length > 0 ? student.name.charAt(0) : ''}
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-300 to-indigo-500 text-white flex items-center justify-center text-xs font-bold capitalize flex-shrink-0">
+                                    {typeof student.name === 'string' && student.name.length > 0 ? student.name.charAt(0) : 'S'}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium text-gray-800 truncate capitalize">{student.name}</div>
@@ -1003,16 +965,19 @@ const LeaderDetail: React.FC = () => {
                                       <span className={`w-1.5 h-1.5 rounded-full ${student.status === 'present' ? 'bg-green-500' :
                                         student.status === 'registered' ? 'bg-orange-500' : 'bg-red-500'
                                         }`}></span>
-                                      <span className="text-xs text-gray-500 capitalize">{student.status}</span>
+                                      <span className="text-xs text-gray-500 capitalize truncate">{student.status}</span>
                                     </div>
                                   </div>
                                 </div>
                               ))}
                             </div>
                             {group.students.length > 4 && (
-                              <button className="w-full mt-2 py-2 text-xs text-indigo-600 font-medium hover:bg-indigo-50 rounded-lg transition">
+                              <Link
+                                to={`/user/group/follow/${group.followingName?.charAt(1)}/${group.followingName}`}
+                                className="block w-full mt-2 py-2 text-center text-xs text-indigo-600 font-medium hover:bg-indigo-50 rounded-lg transition"
+                              >
                                 +{group.students.length - 4} more students
-                              </button>
+                              </Link>
                             )}
                           </div>
                         )}
@@ -1029,15 +994,15 @@ const LeaderDetail: React.FC = () => {
                   <div className="space-y-4">
                     {leader.subGroups.map((group: any, idx: number) => (
                       <div key={idx} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                        <div className="px-6 py-4 bg-violet-50 border-b border-violet-100">
+                        <div className="px-4 sm:px-6 py-4 bg-violet-50 border-b border-violet-100">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="w-10 h-10 rounded-full bg-violet-600 text-white flex items-center justify-center font-bold flex-shrink-0">
                                 SG
                               </div>
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{group.subgroupName}</h4>
-                                <p className="text-xs text-violet-600 mt-0.5">
+                              <div className="min-w-0 flex-1">
+                                <h4 className="font-semibold text-gray-900 truncate">{group.subgroupName}</h4>
+                                <p className="text-xs text-violet-600 mt-0.5 truncate">
                                   {group.students?.length || 0} Students • 2 Mentors
                                 </p>
                               </div>
@@ -1047,7 +1012,7 @@ const LeaderDetail: React.FC = () => {
                                 const msg = generateWhatsAppMessage(group, true);
                                 openWhatsApp(leader.whatsappNumber, msg);
                               }}
-                              className="bg-white hover:bg-violet-600 text-violet-600 hover:text-white p-3 rounded-full shadow-sm border border-violet-200 transition-all duration-200"
+                              className="bg-white hover:bg-violet-600 text-violet-600 hover:text-white p-3 rounded-full shadow-sm border border-violet-200 transition-all duration-200 flex-shrink-0 ml-2"
                               title="Send WhatsApp message"
                             >
                               <FaWhatsapp className="text-lg" />
@@ -1056,46 +1021,47 @@ const LeaderDetail: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-3 divide-x divide-gray-100 bg-gray-50">
-                          <div className="py-3 text-center">
-                            <div className="text-xl font-bold text-orange-500">
+                          <div className="py-3 text-center px-1">
+                            <div className="text-lg sm:text-xl font-bold text-orange-500">
                               {group.students?.filter((s: any) => s.status === "registered").length || 0}
                             </div>
-                            <div className="text-xs text-gray-500">Registered</div>
+                            <div className="text-xs text-gray-500 truncate">Registered</div>
                           </div>
-                          <div className="py-3 text-center">
-                            <div className="text-xl font-bold text-green-500">
+                          <div className="py-3 text-center px-1">
+                            <div className="text-lg sm:text-xl font-bold text-green-500">
                               {group.students?.filter((s: any) => s.status === "present").length || 0}
                             </div>
-                            <div className="text-xs text-gray-500">Present</div>
+                            <div className="text-xs text-gray-500 truncate">Present</div>
                           </div>
-                          <div className="py-3 text-center">
-                            <div className="text-xl font-bold text-red-500">
+                          <div className="py-3 text-center px-1">
+                            <div className="text-lg sm:text-xl font-bold text-red-500">
                               {group.students?.filter((s: any) => s.status === "absent").length || 0}
                             </div>
-                            <div className="text-xs text-gray-500">Absent</div>
+                            <div className="text-xs text-gray-500 truncate">Absent</div>
                           </div>
                         </div>
 
                         <div className="p-4 border-t border-gray-100">
                           <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Mentors</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          {/* Mentors: stacked on mobile, grid on desktop */}
+                          <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-3">
                             {[group.leader1, group.leader2].map((mentor, index) => (
                               <div
                                 key={index}
                                 onClick={() => mentor?.id && goToLeader(mentor.id)}
-                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-violet-50 transition cursor-pointer group"
+                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-violet-50 transition cursor-pointer group w-full"
                               >
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-white flex items-center justify-center text-sm font-bold shadow-sm group-hover:scale-105 transition capitalize">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-violet-600 text-white flex items-center justify-center text-sm font-bold shadow-sm group-hover:scale-105 transition capitalize flex-shrink-0">
                                   {mentor?.name?.charAt(0) || 'M'}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {mentor ? (
                                     <>
                                       <div className="font-medium text-gray-800 text-sm truncate capitalize">{mentor.name}</div>
-                                      <div className="text-xs text-gray-500 truncate capitalize">{mentor.place}</div>
+                                      <div className="text-xs text-gray-500 truncate capitalize">{mentor.place || 'Location not set'}</div>
                                     </>
                                   ) : (
-                                    <div className="text-sm text-red-500">Unassigned</div>
+                                    <div className="text-sm text-red-500 truncate">Unassigned</div>
                                   )}
                                 </div>
                               </div>
@@ -1107,17 +1073,23 @@ const LeaderDetail: React.FC = () => {
                           <div className="p-4 pt-0">
                             <div className="flex items-center justify-between mb-3">
                               <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Students</p>
-                              <span className="text-xs text-violet-600 font-medium">View all →</span>
+                              <Link
+                                to={`/user/group/sub/${group.subgroupName?.charAt(1)}/${group.subgroupName}`}
+                                className="text-xs text-violet-600 font-medium hover:text-violet-800 transition-colors"
+                              >
+                                View all →
+                              </Link>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            {/* Students: stacked on mobile, grid on desktop */}
+                            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-2">
                               {group.students.slice(0, 4).map((student: any) => (
                                 <div
                                   key={student.id}
                                   onClick={() => goToStudent(student.id)}
-                                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-violet-50 transition cursor-pointer border border-transparent hover:border-violet-200"
+                                  className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-violet-50 transition cursor-pointer border border-transparent hover:border-violet-200 w-full"
                                 >
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-300 to-violet-500 text-white flex items-center justify-center text-xs font-bold capitalize">
-                                    {typeof student.name === 'string' && student.name.length > 0 ? student.name.charAt(0) : ''}
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-300 to-violet-500 text-white flex items-center justify-center text-xs font-bold capitalize flex-shrink-0">
+                                    {typeof student.name === 'string' && student.name.length > 0 ? student.name.charAt(0) : 'S'}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="text-sm font-medium text-gray-800 truncate capitalize">{student.name}</div>
@@ -1125,16 +1097,19 @@ const LeaderDetail: React.FC = () => {
                                       <span className={`w-1.5 h-1.5 rounded-full ${student.status === 'present' ? 'bg-green-500' :
                                         student.status === 'registered' ? 'bg-orange-500' : 'bg-red-500'
                                         }`}></span>
-                                      <span className="text-xs text-gray-500 capitalize">{student.status}</span>
+                                      <span className="text-xs text-gray-500 capitalize truncate">{student.status}</span>
                                     </div>
                                   </div>
                                 </div>
                               ))}
                             </div>
                             {group.students.length > 4 && (
-                              <button className="w-full mt-2 py-2 text-xs text-violet-600 font-medium hover:bg-violet-50 rounded-lg transition">
+                              <Link
+                                to={`/user/group/sub/${group.subgroupName?.charAt(1)}/${group.subgroupName}`}
+                                className="block w-full mt-2 py-2 text-center text-xs text-violet-600 font-medium hover:bg-violet-50 rounded-lg transition"
+                              >
                                 +{group.students.length - 4} more students
-                              </button>
+                              </Link>
                             )}
                           </div>
                         )}

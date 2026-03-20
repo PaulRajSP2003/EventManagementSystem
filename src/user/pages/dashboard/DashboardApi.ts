@@ -1,4 +1,5 @@
 // import mockData from './mockData.json';
+import { API_BASE } from '../../../config/api';
 
 export interface DashboardData {
   dashboard: {
@@ -92,12 +93,18 @@ export interface DashboardData {
   };
 }
 
-export const fetchDashboardData = async (): Promise<DashboardData> => {
-  const response = await fetch('https://localhost:7135/api/user/dashboard', {
+export const fetchDashboardData = async (token?: string): Promise<DashboardData> => {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE}/user/dashboard`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     credentials: 'include', // If cookies/session needed
   });
   if (!response.ok) {

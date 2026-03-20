@@ -1,11 +1,12 @@
 // src/user/pages/admin/UserDetail.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FiArrowLeft, FiEdit, FiMail, FiPhone, FiUser, FiAlertTriangle, FiLock, FiCheckCircle, FiCheck, FiCopy } from 'react-icons/fi';
+import { FiEdit, FiMail, FiPhone, FiUser, FiAlertTriangle, FiLock, FiCheckCircle, FiCheck, FiCopy, FiClock } from 'react-icons/fi';
 import type { User } from '../../../types';
 import { getUserById } from './api/UserData';
 import { PAGE_PERMISSIONS, isAdmin, fetchPermissionData } from '../permission';
 import AccessAlert from '../components/AccessAlert';
+import StickyHeader from '../components/StickyHeader';
 
 const UserDetailSkeleton = () => {
   return (
@@ -30,7 +31,7 @@ const UserDetail = () => {
     const checkAccess = async () => {
       try {
         const permissionData = await fetchPermissionData();
-        setUserRole(permissionData.role);
+        setUserRole(permissionData?.role || 'user');
       } catch (err) {
         console.error('Error fetching permission data:', err);
         setUserRole('user'); // Default to user on error
@@ -38,14 +39,14 @@ const UserDetail = () => {
         setCheckingAccess(false);
       }
     };
-    
+
     checkAccess();
   }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
       if (!id || checkingAccess) return;
-      
+
       setLoading(true);
       try {
         const userData = await getUserById(parseInt(id, 10));
@@ -118,6 +119,13 @@ const UserDetail = () => {
         { name: 'Room Leader Assign', permissionId: PAGE_PERMISSIONS.ROOM_LEADER_ASSIGN },
       ],
     },
+    {
+      label: 'Tasks',
+      category: 'TASK',
+      items: [
+        { name: 'Task Details', permissionId: PAGE_PERMISSIONS.TASK_DETAILS }
+      ],
+    },
   ];
 
   const getPermissionStatus = (permissionId: number) => {
@@ -132,36 +140,39 @@ const UserDetail = () => {
   if (checkingAccess || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-          <div className="max-w-5xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">User Profile</h1>
-            </div>
-          </div>
-        </div>
+        <StickyHeader title="User Profile" onBack={() => navigate(-1)} />
         <UserDetailSkeleton />
       </div>
     );
   }
 
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return 'Never';
+    try {
+      const hasTimezone = dateString.includes('Z') || /[+-]\d{2}(:?\d{2})?$/.test(dateString);
+      const utcString = hasTimezone ? dateString : `${dateString}Z`;
+
+      const date = new Date(utcString);
+
+      return date.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
+    } catch (e) {
+      return dateString;
+    }
+  };
+
   if (error || !user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-          <div className="max-w-5xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium">
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Error</h1>
-            </div>
-          </div>
-        </div>
+        <StickyHeader title="Error" onBack={() => navigate(-1)} />
         <div className="max-w-4xl mx-auto px-4 mt-8">
           <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-xl flex items-center gap-4">
             <FiAlertTriangle size={24} />
@@ -177,43 +188,29 @@ const UserDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      {/* Sticky Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              <FiArrowLeft /> Back
-            </button>
-            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">User Profile</h1>
-          </div>
+      <StickyHeader title="User Profile" onBack={() => navigate(-1)}>
+        <Link
+          to={`/admin/users/edit/${user.id}`}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow"
+        >
+          <FiEdit /> Edit User
+        </Link>
+      </StickyHeader>
 
-          <Link
-            to={`/admin/users/edit/${user.id}`}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium shadow-sm hover:shadow"
-          >
-            <FiEdit /> Edit User
-          </Link>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8 space-y-6">
         {/* Hero Section - Repositioned Name & ID as Tag */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           {/* Header Background Gradient */}
           <div className="relative h-48 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
 
             {/* Profile Content Overlaid on Gradient */}
-            <div className="absolute bottom-6 left-6 right-6">
-              <div className="flex items-center gap-6">
+            <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
+              <div className="flex items-center gap-4 sm:gap-6">
 
                 {/* Avatar - Single Letter */}
                 <div className="flex-shrink-0">
-                  <div className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-2xl p-1 border border-white/30">
-                    <div className="w-full h-full bg-white rounded-xl flex items-center justify-center text-indigo-700 text-4xl font-black">
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 bg-white/20 backdrop-blur-md rounded-2xl p-1 border border-white/30">
+                    <div className="w-full h-full bg-white rounded-xl flex items-center justify-center text-indigo-700 text-2xl sm:text-4xl font-black">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   </div>
@@ -221,18 +218,18 @@ const UserDetail = () => {
 
                 {/* User Info Overlay */}
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h1 className="text-3xl font-black text-white tracking-tight capitalize">
+                  <div className="flex items-center gap-3 mb-1 sm:mb-2">
+                    <h1 className="text-xl sm:text-3xl font-black text-white tracking-tight capitalize truncate max-w-[150px] sm:max-w-none">
                       {user.name}
                     </h1>
                     {/* ID as a Tag */}
-                    <span className="px-2 py-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-lg text-[10px] font-black text-white uppercase tracking-widest">
+                    <span className="hidden xs:inline-block px-2 py-1 bg-white/20 backdrop-blur-md border border-white/30 rounded-lg text-[8px] sm:text-[10px] font-black text-white uppercase tracking-widest">
                       ID: #{user.id}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 text-[10px] font-bold rounded-lg uppercase tracking-widest border ${user.isActive
+                    <span className={`px-2 sm:px-3 py-1 text-[8px] sm:text-[10px] font-bold rounded-lg uppercase tracking-widest border ${user.isActive
                       ? 'bg-emerald-500/20 text-emerald-100 border-emerald-400/30'
                       : 'bg-rose-500/20 text-rose-100 border-rose-400/30'
                       }`}>
@@ -241,6 +238,14 @@ const UserDetail = () => {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Last Login Badge - Positioned in bottom right corner */}
+            <div className="absolute bottom-4 right-4 flex items-center gap-2 px-4 py-2 bg-black/20 backdrop-blur-md rounded-lg border border-white/20">
+              <FiClock className="text-white/80" size={16} />
+              <span className="text-sm font-bold text-white uppercase tracking-wider">
+                Last Login: {formatDate(user.lastLogin)}
+              </span>
             </div>
           </div>
 
@@ -252,7 +257,7 @@ const UserDetail = () => {
         </div>
 
         {/* Quick Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <span className="text-slate-500 text-xs uppercase font-bold tracking-wider">Account Status</span>
@@ -294,7 +299,7 @@ const UserDetail = () => {
                 <div className={`w-3 h-3 rounded-full ${user.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
               </div>
             </div>
-            <p className="text-lg font-bold text-slate-900">{user.isActive ? 'Online' : 'Offline'}</p>
+            <p className="text-lg font-bold text-slate-900">{user.isActive ? 'Active' : 'Inactive'}</p>
           </div>
         </div>
 
@@ -307,7 +312,7 @@ const UserDetail = () => {
             </div>
           </div>
 
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="flex gap-4">
               <div className="w-14 h-14 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
                 <FiMail className="text-indigo-600" size={24} />
@@ -366,7 +371,7 @@ const UserDetail = () => {
           </div>
 
           <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-10">
               {permissionStructure.map((group) => {
                 const hasAnyPermissions = group.items.some(item => getPermissionStatus(item.permissionId));
                 if (!hasAnyPermissions) return null;

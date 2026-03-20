@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { GroupStructure } from '../api/FollowingGroupData';
+import type { GroupStructure, FollowingGroup } from '../api/FollowingGroupDataAPI';
 import { FaSortAmountUp, FaSortAmountDown, FaUserCheck, FaUserTimes, FaUsers } from 'react-icons/fa';
 
 interface AvailableFollowingGroupListProps {
@@ -25,23 +25,32 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortAsc, setSortAsc] = useState(false);
+  const [sortConfig, setSortConfig] = useState<'name' | 'count-asc' | 'count-desc'>('name');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentMainGroupData = useMemo(() => {
-    if (!mainGroup) return null;
+  const allFollowingGroupsForGender = useMemo(() => {
+    if (!mainGroup) return [];
     const genderKey = gender.toLowerCase() as 'male' | 'female';
-    return structure[genderKey]?.find((g) => g.groupName === mainGroup) ?? null;
+    const genderGroups = structure[genderKey] || [];
+
+    const list: FollowingGroup[] = [];
+    genderGroups.forEach(group => {
+      group.followingGroups.forEach(fg => {
+        if (fg.followingGroupName.startsWith(mainGroup)) {
+          list.push(fg);
+        }
+      });
+    });
+    return list;
   }, [structure, gender, mainGroup]);
 
   const filteredFollowingGroups = useMemo(() => {
-    if (!currentMainGroupData) return [];
-    let list = [...currentMainGroupData.followingGroups];
+    if (allFollowingGroupsForGender.length === 0) return [];
+    let list = [...allFollowingGroupsForGender];
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       list = list.filter((fg) => fg.followingGroupName.toLowerCase().includes(term));
     }
-    // Filter out groups with same leader type in replacement case, but always include the currently selected group
     if (isReplacementCase && (leaderType === 'leader1' || leaderType === 'leader2')) {
       list = list.filter((fg) => {
         if (fg.followingGroupName === selectedFollowingGroup) return true;
@@ -50,10 +59,21 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
         return true;
       });
     }
-    return list.sort((a, b) =>
-      sortAsc ? a.studentIds.length - b.studentIds.length : b.studentIds.length - a.studentIds.length
-    );
-  }, [currentMainGroupData, searchTerm, sortAsc, isReplacementCase, leaderType, selectedFollowingGroup]);
+    return list.sort((a, b) => {
+      const nameA = a.followingGroupName;
+      const nameB = b.followingGroupName;
+
+      if (sortConfig === 'count-asc' || sortConfig === 'count-desc') {
+        const countDiff = a.studentIds.length - b.studentIds.length;
+        if (countDiff !== 0) {
+          return sortConfig === 'count-asc' ? countDiff : -countDiff;
+        }
+      }
+
+      // Default or fallback: natural name sort
+      return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [allFollowingGroupsForGender, searchTerm, sortConfig, isReplacementCase, leaderType, selectedFollowingGroup]);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -77,9 +97,8 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
         type="button"
         disabled={disabled || !mainGroup}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-200 bg-white shadow-sm ${
-          isOpen ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-200 hover:border-slate-300'
-        } ${disabled || !mainGroup ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all duration-200 bg-white shadow-sm ${isOpen ? 'border-indigo-500 ring-4 ring-indigo-50' : 'border-slate-200 hover:border-slate-300'
+          } ${disabled || !mainGroup ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
       >
         <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full ${selectedFollowingGroup ? 'bg-indigo-500' : 'bg-slate-300 animate-pulse'}`} />
@@ -95,8 +114,7 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute left-0 z-50 mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300"
-          style={{ minWidth: 'max(450px, 100%)' }}
+          className="fixed sm:absolute bottom-24 sm:bottom-auto sm:top-full left-4 right-4 sm:left-0 sm:right-auto z-[100] mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 w-auto sm:w-full min-w-[300px] sm:min-w-[480px] max-w-[calc(100vw-2rem)]"
         >
           {/* Action Bar — Matches MainGroupList Padding/Size */}
           <div className="p-3.5 border-b border-slate-100 flex items-center gap-2 bg-slate-50/50">
@@ -109,27 +127,34 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
             />
 
             <button
-              onClick={() => setSortAsc(!sortAsc)}
-              className={`p-2.5 rounded-lg transition-all border flex items-center justify-center shadow-sm ${
-                !sortAsc
+              onClick={() => {
+                setSortConfig(prev => {
+                  if (prev === 'name') return 'count-desc';
+                  if (prev === 'count-desc') return 'count-asc';
+                  return 'name';
+                });
+              }}
+              className={`p-2.5 rounded-lg transition-all border flex items-center justify-center shadow-sm ${sortConfig !== 'name'
                 ? 'bg-indigo-600 border-indigo-600 text-white'
                 : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
-              }`}
+                }`}
+              title={sortConfig === 'name' ? "Sort by Student Count" : sortConfig === 'count-desc' ? "Sort by Count (Asc)" : "Sort by Name"}
             >
-              {sortAsc ? <FaSortAmountUp size={16} /> : <FaSortAmountDown size={16} />}
+              {sortConfig === 'name' ? <FaSortAmountDown className="opacity-40" size={16} /> :
+                sortConfig === 'count-asc' ? <FaSortAmountUp size={16} /> : <FaSortAmountDown size={16} />}
             </button>
           </div>
 
           {/* Table Header */}
-          <div className="flex items-center px-4 py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-black text-slate-400 uppercase tracking-wider">
+          <div className="flex items-center px-4 py-3 bg-slate-50 border-b border-slate-100 text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-wider">
             <div className="flex-1">Group Name</div>
-            <div className="w-[85px] text-left">Leader 1</div>
-            <div className="w-[85px] text-left">Leader 2</div>
-            <div className="w-[75px] text-right">Student</div>
+            <div className="hidden sm:block w-[85px] text-left">Leader 1</div>
+            <div className="hidden sm:block w-[85px] text-left">Leader 2</div>
+            <div className="w-[60px] sm:w-[75px] text-right">Students</div>
           </div>
 
           {/* List Container — Increased padding to 2.5 to match MainGroupList */}
-          <div className="max-h-80 overflow-y-auto p-2.5">
+          <div className="max-h-[50vh] sm:max-h-80 overflow-y-auto p-2.5">
             {filteredFollowingGroups.length === 0 ? (
               <div className="p-10 text-center text-base text-slate-400 italic">No groups found</div>
             ) : (
@@ -145,34 +170,30 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
                       onSelectionChange(fg.followingGroupName);
                       setIsOpen(false);
                     }}
-                    className={`w-full flex items-center p-3.5 rounded-xl transition-all mb-1 border group ${
-                      isSelected
+                    className={`w-full flex items-center p-2.5 sm:p-3.5 rounded-xl transition-all mb-1 border group ${isSelected
                       ? "bg-indigo-50 border-indigo-200 text-indigo-700 ring-1 ring-indigo-100"
                       : "bg-transparent border-transparent hover:bg-slate-50 hover:border-slate-200 text-slate-600"
-                    }`}
+                      }`}
                   >
-                    {/* Col 1: Name + Letter Box (Matches MainGroupList Style) */}
-                    <div className="flex-1 flex items-center gap-4 text-left">
-                      <span className={`w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-[13px] font-black transition-colors ${
-                        isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500'
-                      }`}>
+                    {/* Col 1: Name + Letter Box */}
+                    <div className="flex-1 flex items-center gap-2 sm:gap-4 text-left min-w-0">
+                      <span className={`w-7 h-7 sm:w-8 sm:h-8 flex-shrink-0 flex items-center justify-center rounded-lg text-[11px] sm:text-[13px] font-black transition-colors ${isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-100 text-slate-500'
+                        }`}>
                         {fg.followingGroupName.charAt(0)}
                       </span>
-                      <div className="flex flex-col">
-                        <span className="text-[15px] font-bold tracking-tight">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-[13px] sm:text-[15px] font-bold tracking-tight truncate">
                           {fg.followingGroupName}
                         </span>
-                        {/* Added "Active" badge style like MainGroupList */}
                         {isSelected && (
-                          <span className="text-[9px] font-black text-indigo-500 uppercase mt-0.5">Active Now</span>
+                          <span className="text-[8px] sm:text-[9px] font-black text-indigo-500 uppercase mt-0.5">Active</span>
                         )}
                       </div>
                     </div>
 
-                    {/* Col 2: Leader 1 */}
-                    <div className="w-[85px] flex justify-start">
-                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${
-                          hasL1 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-rose-50 text-rose-400 border-rose-100 opacity-60"
+                    {/* Col 2: Leader 1 (Status shown as dots/icons on mobile if space is tight, or just hidden in the table view) */}
+                    <div className="hidden sm:flex w-[85px] justify-start">
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${hasL1 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-rose-50 text-rose-400 border-rose-100 opacity-60"
                         }`}
                       >
                         {hasL1 ? <FaUserCheck size={11} /> : <FaUserTimes size={11} />}
@@ -181,9 +202,8 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
                     </div>
 
                     {/* Col 3: Leader 2 */}
-                    <div className="w-[85px] flex justify-start">
-                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${
-                          hasL2 ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-rose-50 text-rose-400 border-rose-100 opacity-60"
+                    <div className="hidden sm:flex w-[85px] justify-start">
+                      <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${hasL2 ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-rose-50 text-rose-400 border-rose-100 opacity-60"
                         }`}
                       >
                         {hasL2 ? <FaUserCheck size={11} /> : <FaUserTimes size={11} />}
@@ -191,13 +211,12 @@ const AvailableFollowingGroupList: React.FC<AvailableFollowingGroupListProps> = 
                       </div>
                     </div>
 
-                    {/* Col 4: Student Count — Scaled up */}
-                    <div className="w-[75px] flex justify-end">
-                      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[13px] font-black ${
-                          isSelected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-white"
+                    {/* Col 4: Student Count */}
+                    <div className="w-[60px] sm:w-[75px] flex justify-end flex-shrink-0">
+                      <div className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg text-[11px] sm:text-[13px] font-black ${isSelected ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-500 group-hover:bg-white"
                         }`}
                       >
-                        <FaUsers size={14} />
+                        <FaUsers className="text-[10px] sm:text-[14px]" />
                         {fg.studentIds.length}
                       </div>
                     </div>

@@ -101,7 +101,7 @@ const EventSettings: React.FC = () => {
     const checkAccess = async () => {
       try {
         const permissionData = await fetchPermissionData();
-        setUserRole(permissionData.role);
+        setUserRole(permissionData?.role || 'user');
       } catch (err) {
         console.error('Error fetching permission data:', err);
         setUserRole('user');

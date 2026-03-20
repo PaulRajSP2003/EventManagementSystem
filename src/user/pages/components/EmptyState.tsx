@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface EmptyStateProps {
   title?: string;
@@ -26,14 +27,15 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   navigatePath,
   onClick,
 }) => {
+  const navigate = useNavigate();
   // Use first available title-like prop
   const displayTitle = title || message || error || 'No data';
   const displayDescription = description || message;
-  
+
   // Create action from button props if provided
   const displayAction = action || (buttonText && (navigatePath || onClick) ? {
     label: buttonText,
-    onClick: onClick || (() => { if (navigatePath) window.location.href = navigatePath; })
+    onClick: onClick || (() => { if (navigatePath) navigate(navigatePath); })
   } : undefined);
   const iconComponents: Record<string, React.ReactNode> = {
     search: (

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FiArrowLeft,
   FiEdit,
   FiUser,
   FiAlertTriangle,
@@ -12,6 +11,7 @@ import {
 import type { Medical, MedicalTreatment } from '../../../types';
 import MedicalTreatmentComponent from '../components/MedicalTreatmentComponent';
 import EmptyState from '../components/EmptyState';
+import StickyHeader from '../components/StickyHeader';
 import { PAGE_PERMISSIONS, canAccess, fetchPermissionData, type PermissionData } from '../permission';
 import AccessAlert from '../components/AccessAlert';
 import { medicalAPI } from '../api/MedicalData';
@@ -112,7 +112,7 @@ const ReportDetailsSkeleton = () => (
 
         {/* Right column */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
             <div className="h-6 w-40 bg-gray-200 rounded mb-4"></div>
             <div className="h-32 w-full bg-gray-100 rounded-xl mb-6"></div>
             <div className="h-6 w-32 bg-gray-200 rounded mb-4"></div>
@@ -203,39 +203,6 @@ const ReportDetails = () => {
     return canAccess(permissionData, MEDICAL_TREATMENT_ADDING);
   };
 
-  // Header component
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-      <div className="max-w-5xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate('/user/medical')}
-            disabled={!hasPageAccess()}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiArrowLeft /> Back
-          </button>
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-            Medical Report Details
-          </h1>
-        </div>
-        {/* Edit Report button - disabled if no permission */}
-        <button
-          onClick={() => canEditReport() ? navigate(`/user/medical/edit/${reportId}`) : null}
-          disabled={!canEditReport()}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm ${
-            canEditReport()
-              ? 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-              : 'bg-slate-50 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
-          }`}
-          title={!canEditReport() ? "You don't have permission to edit medical reports" : ""}
-        >
-          <FiEdit /> Edit Report
-        </button>
-      </div>
-    </div>
-  );
 
   useEffect(() => {
     // Check access before loading data
@@ -357,7 +324,7 @@ const ReportDetails = () => {
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Medical Report Details" onBack={() => navigate('/user/medical')} />
         <ReportDetailsSkeleton />
       </div>
     );
@@ -374,7 +341,7 @@ const ReportDetails = () => {
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Medical Report Details" onBack={() => navigate('/user/medical')} />
       <ReportDetailsSkeleton />
     </div>
   );
@@ -382,7 +349,7 @@ const ReportDetails = () => {
   if (error || !report) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Medical Report Details" onBack={() => navigate('/user/medical')} />
         <div className="max-w-5xl mx-auto px-4 mt-6">
           <EmptyState
             title={error ? 'Error' : 'Report Not Found'}
@@ -400,20 +367,33 @@ const ReportDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Medical Report Details" onBack={() => navigate('/user/medical')}>
+        <button
+          onClick={() => canEditReport() ? navigate(`/user/medical/edit/${reportId}`) : null}
+          disabled={!canEditReport()}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm ${
+            canEditReport()
+              ? 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+              : 'bg-slate-50 border border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+          }`}
+          title={!canEditReport() ? "You don't have permission to edit medical reports" : ""}
+        >
+          <FiEdit /> Edit Report
+        </button>
+      </StickyHeader>
 
       <div className="max-w-5xl mx-auto px-4 mt-6">
         {/* Report Summary Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mb-6">
           <div className={`h-2 w-full bg-gradient-to-r ${sev.banner}`}></div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className={`p-3 rounded-xl ${sev.bg} bg-opacity-50`}>
                   {report.severity === 'critical' ? <FiAlertTriangle size={24} /> : <FiHeart size={24} />}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-slate-800 capitalize">{report.title}</h1>
+                  <h1 className="text-xl sm:text-2xl font-bold text-slate-800 capitalize">{report.title}</h1>
                   <p className="text-slate-500 text-sm">Report ID: #{report.reportId}</p>
                 </div>
               </div>
@@ -427,7 +407,7 @@ const ReportDetails = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left: Patient & Meta Info */}
           <div className="space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
               <SectionHeader icon={FiUser} title="Patient Info" />
               {patient ? (
                 <div className="space-y-4">
@@ -471,7 +451,7 @@ const ReportDetails = () => {
               )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm">
               <SectionHeader icon={FiCalendar} title="Timeline" />
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between">
@@ -498,7 +478,7 @@ const ReportDetails = () => {
 
           {/* Right: Details & Treatments */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
               <SectionHeader icon={FiInfo} title="Condition Details" />
               <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
                 <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">

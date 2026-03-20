@@ -1,6 +1,7 @@
 import type { Event } from '../../types';
 
-const BASE_URL = 'https://localhost:7135/api/owner/event';
+import { API_BASE } from '../../config/api';
+const BASE_URL = `${API_BASE}/owner/event`;
 
 const getHeaders = () => {
   return {

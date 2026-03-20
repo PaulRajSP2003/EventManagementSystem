@@ -1,6 +1,7 @@
 // src/Services/signalRService.ts
 import * as signalR from '@microsoft/signalr';
 import type { Notification } from '../../types/Notification/types';
+import { HUB_BASE } from '../../config/api';
 
 class SignalRService {
     private connection: signalR.HubConnection | null = null;
@@ -11,33 +12,45 @@ class SignalRService {
     private maxReconnectAttempts = 10;
     private currentEventId: string | null = null;
     private connectionPromise: Promise<void> | null = null;
+    private isManuallyStopped = false;
 
     public async startConnection(eventId?: string): Promise<void> {
+        // Reset manual stop flag when starting
+        this.isManuallyStopped = false;
+
         // Store eventId for reconnection
         if (eventId !== undefined) {
             this.currentEventId = eventId;
         }
 
-        // If already connected or connecting, just update eventId and rejoin if needed
-        if (this.connection) {
+        // If connection is in progress, return that promise
+        if (this.connectionPromise) {
+
+            return this.connectionPromise;
+        }
+
+        // If already connected, just update eventId and rejoin if needed
+        if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
+
             if (eventId && eventId !== this.currentEventId) {
                 this.currentEventId = eventId;
-                if (this.connection.state === signalR.HubConnectionState.Connected) {
-                    try {
-                        await this.connection.invoke('JoinEventGroup', eventId);
-                    } catch { }
+                try {
+                    await this.connection.invoke('JoinEventGroup', eventId);
+                } catch (e) {
+                    console.error('[SignalR] JoinEventGroup failed:', e);
                 }
             }
             return;
         }
 
-        // If connection is in progress, return that promise
-        if (this.connectionPromise) {
-            return this.connectionPromise;
+        // If connection exists but not connected (or stopping), stop it first to be clean
+        if (this.connection) {
+
+            await this.stopConnection();
+            this.isManuallyStopped = false; // Reset after stopConnection sets it
         }
 
-        const apiUrl = 'https://localhost:7135';
-        const hubUrl = `${apiUrl}/notificationHub`;
+        const hubUrl = `${HUB_BASE}/notificationHub`;
 
         this.connection = new signalR.HubConnectionBuilder()
             .withUrl(hubUrl, {
@@ -91,7 +104,8 @@ class SignalRService {
             this.connectionPromise = null;
             this.notifyStateChange('disconnected');
 
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            // Only retry if not manually stopped
+            if (!this.isManuallyStopped && this.reconnectAttempts < this.maxReconnectAttempts) {
                 setTimeout(
                     () => this.startConnection(this.currentEventId || undefined),
                     5000
@@ -119,7 +133,7 @@ class SignalRService {
             this.connectionPromise = null;
             this.notifyStateChange('disconnected');
 
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            if (!this.isManuallyStopped && this.reconnectAttempts < this.maxReconnectAttempts) {
                 setTimeout(
                     () => this.startConnection(this.currentEventId || undefined),
                     5000
@@ -163,6 +177,7 @@ class SignalRService {
     }
 
     public async stopConnection(): Promise<void> {
+        this.isManuallyStopped = true;
         if (this.connection) {
             await this.connection.stop();
             this.connection = null;

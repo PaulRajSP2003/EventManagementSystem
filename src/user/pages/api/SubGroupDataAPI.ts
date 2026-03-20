@@ -1,6 +1,7 @@
 // D:\Project\campmanagementsystem\src\user\pages\api\SubGroupDataAPI.ts
 
-const BASE_URL = 'https://localhost:7135/api/user/sub/group';
+import { API_BASE } from '../../../config/api';
+const BASE_URL = `${API_BASE}/user/sub/group`;
 
 export interface SubGroup {
     subGroupName: string;

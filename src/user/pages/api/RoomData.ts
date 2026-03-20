@@ -1,5 +1,6 @@
 
 import type { RoomData } from '../../../types';
+import { API_BASE as CENTRAL_API_BASE } from '../../../config/api';
 
 export interface mainLeaderData {
   leaderId: number;
@@ -248,9 +249,8 @@ export interface mainLeaderData {
 // Download Excel file for rooms
 export async function downloadRoomCSV(): Promise<void> {
   try {
-    const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://localhost:7135';
-    const baseUrl = API_BASE.replace(/\/$/, '');
-    const downloadUrl = `${baseUrl}/api/room/download`;
+    const baseUrl = CENTRAL_API_BASE.replace(/\/$/, '');
+    const downloadUrl = `${baseUrl}/room/download`;
 
     const headers: HeadersInit = {
       'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv',
@@ -272,18 +272,18 @@ export async function downloadRoomCSV(): Promise<void> {
         } catch {
           errorMessage = text || errorMessage;
         }
-      } catch {}
+      } catch { }
       throw new Error(errorMessage);
     }
 
     const blob = await response.blob();
-    
+
     // Check content type to determine file extension
     const contentType = response.headers.get('Content-Type');
-    const isExcel = contentType?.includes('spreadsheetml.sheet') || 
-                    contentType?.includes('excel') || 
-                    contentType?.includes('octet-stream');
-    
+    const isExcel = contentType?.includes('spreadsheetml.sheet') ||
+      contentType?.includes('excel') ||
+      contentType?.includes('octet-stream');
+
     const getFormattedDateTime = () => {
       const now = new Date();
       const dateStr = now.toISOString().split('T')[0];
@@ -297,10 +297,10 @@ export async function downloadRoomCSV(): Promise<void> {
       const timeStr = `${hourStr}-${minutes}-${seconds}-${ampm}`;
       return `${dateStr}_${timeStr}`;
     };
-    
+
     const contentDisposition = response.headers.get('Content-Disposition');
     let filename = '';
-    
+
     if (contentDisposition) {
       const filenameMatch = contentDisposition.match(/filename[*]=UTF-8''(.+)/) ||
         contentDisposition.match(/filename=(.+?)(?:;|$)/);
@@ -308,13 +308,13 @@ export async function downloadRoomCSV(): Promise<void> {
         filename = decodeURIComponent(filenameMatch[1].replace(/['"]/g, ''));
       }
     }
-    
+
     // If no filename from header, generate one with correct extension
     if (!filename) {
       const extension = isExcel ? '.xlsx' : '.csv';
       filename = `rooms_export_${getFormattedDateTime()}${extension}`;
     }
-    
+
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -332,9 +332,9 @@ export async function downloadRoomCSV(): Promise<void> {
 }
 
 // Fetch room data from API
-export async function fetchRoomData(): Promise<RoomData> {  
+export async function fetchRoomData(): Promise<RoomData> {
   try {
-    const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
+    const API_BASE = CENTRAL_API_BASE;
     const ROOM_URL = `${API_BASE.replace(/\/$/, '')}/room`;
 
     const response = await fetch(ROOM_URL, {
@@ -350,20 +350,20 @@ export async function fetchRoomData(): Promise<RoomData> {
     if (response.status === 401) {
       throw new Error('Unauthorized: Please login to access room data');
     }
-    
+
     if (response.status === 403) {
       throw new Error('Forbidden: You do not have permission to access room data');
     }
-    
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('FetchRoomData - Error response:', errorText);
       throw new Error(`Failed to fetch room data: ${response.status} - ${errorText}`);
     }
-    
+
     const text = await response.text();
-    
-    
+
+
     // Parse JSON safely
     let result;
     try {
@@ -372,14 +372,14 @@ export async function fetchRoomData(): Promise<RoomData> {
       console.error('FetchRoomData - Invalid JSON received:', text);
       throw new Error('Invalid response from server');
     }
-    
-    
-    
+
+
+
     if (result.success && result.data) {
       return result.data;
     }
     return result;
-    
+
   } catch (error) {
     console.error('FetchRoomData - Network error:', error);
     throw error instanceof Error ? error : new Error('Failed to fetch room data');
@@ -395,7 +395,7 @@ export interface EventStayConfig {
 export async function fetchEventStayConfig(): Promise<EventStayConfig | null> {
 
   try {
-    const response = await fetch('https://localhost:7135/api/admin/eventStayRoomConfig', {
+    const response = await fetch(`${CENTRAL_API_BASE}/admin/eventStayRoomConfig`, {
       method: 'GET',
       headers: {
         "Content-Type": "application/json",
@@ -405,7 +405,7 @@ export async function fetchEventStayConfig(): Promise<EventStayConfig | null> {
       mode: 'cors'
     });
 
-    
+
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -414,7 +414,7 @@ export async function fetchEventStayConfig(): Promise<EventStayConfig | null> {
     }
 
     const result = await response.json();
-    
+
 
     if (result.success && result.data) {
       return result.data;
@@ -429,9 +429,9 @@ export async function fetchEventStayConfig(): Promise<EventStayConfig | null> {
 }
 
 export async function saveEventStayConfig(config: EventStayConfig): Promise<{ success: boolean; message: string }> {
-  
+
   try {
-    const response = await fetch('https://localhost:7135/api/admin/eventStayRoomConfig', {
+    const response = await fetch(`${CENTRAL_API_BASE}/admin/eventStayRoomConfig`, {
       method: 'POST',
       headers: {
         "Content-Type": "application/json",
@@ -442,7 +442,7 @@ export async function saveEventStayConfig(config: EventStayConfig): Promise<{ su
       mode: 'cors'
     });
 
-    
+
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -451,7 +451,7 @@ export async function saveEventStayConfig(config: EventStayConfig): Promise<{ su
     }
 
     const result = await response.json();
-    
+
     return result;
 
   } catch (error) {

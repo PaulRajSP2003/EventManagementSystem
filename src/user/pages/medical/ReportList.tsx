@@ -37,13 +37,8 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
-// Session storage keys
-const STORAGE_KEYS = {
-  SEARCH_TERM: 'medicalReportList_searchTerm',
-  FILTERS: 'medicalReportList_filters',
-  SORT_CONFIG: 'medicalReportList_sortConfig',
-  SHOW_FILTERS: 'medicalReportList_showFilters'
-} as const;
+// Storage key
+const STORAGE_KEY = 'medical-list';
 
 // Default filter values
 const DEFAULT_FILTERS: FilterType = {
@@ -59,9 +54,9 @@ const DEFAULT_FILTERS: FilterType = {
 };
 
 const ReportListSkeleton = () => (
-  <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
-    <div className="h-20 bg-white rounded-xl border border-slate-200 shadow-sm"></div>
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+  <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-8 space-y-6 animate-pulse">
+    <div className="h-20 bg-white rounded-xl border border-slate-200"></div>
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
       <div className="h-12 bg-slate-50 border-b border-slate-200"></div>
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="h-16 border-b border-slate-100 mx-4"></div>
@@ -85,61 +80,96 @@ const ReportList = () => {
   const [reports, setReports] = useState<MedicalReportWithPatientName[]>([]);
   const [filteredReports, setFilteredReports] = useState<MedicalReportWithPatientName[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Initialize state from sessionStorage or defaults
-  const [searchTerm, setSearchTerm] = useState(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
-    return saved || '';
-  });
-  
+
+  const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEYS.SHOW_FILTERS);
-    return saved === 'true';
-  });
-  
-  const [sortConfig, setSortConfig] = useState<SortConfig>(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEYS.SORT_CONFIG);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse sort config from sessionStorage', e);
+    try {
+      const localData = localStorage.getItem(STORAGE_KEY);
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        if (parsed.followingGroup || parsed.gender || parsed.status) return true;
       }
-    }
-    return { key: 'reportId', direction: 'desc' };
+      const sessionData = sessionStorage.getItem(STORAGE_KEY);
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        if (parsed.patientId || parsed.patientName || parsed.roomNumber || parsed.severity ||
+          parsed.followingGroup || parsed.gender || parsed.status) return true;
+      }
+    } catch { }
+    return false;
   });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'reportId', direction: 'desc' });
 
   const [filters, setFilters] = useState<FilterType>(() => {
-    const saved = sessionStorage.getItem(STORAGE_KEYS.FILTERS);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse filters from sessionStorage', e);
+    let gender = '';
+    let status = '';
+    let followingGroup = '';
+    let patientId = '';
+    let patientName = '';
+    let roomNumber = '';
+    let severity = '';
+
+    try {
+      // Load from localStorage
+      const localData = localStorage.getItem(STORAGE_KEY);
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        gender = parsed.gender || '';
+        status = parsed.status || '';
+        followingGroup = parsed.followingGroup || '';
       }
-    }
-    return DEFAULT_FILTERS;
+
+      // Load from sessionStorage (overrides or adds)
+      const sessionData = sessionStorage.getItem(STORAGE_KEY);
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        if (parsed.gender) gender = parsed.gender;
+        if (parsed.status) status = parsed.status;
+        if (parsed.followingGroup) followingGroup = parsed.followingGroup;
+        patientId = parsed.patientId || '';
+        patientName = parsed.patientName || '';
+        roomNumber = parsed.roomNumber || '';
+        severity = parsed.severity || '';
+      }
+    } catch { }
+
+    return {
+      ...DEFAULT_FILTERS,
+      gender,
+      status,
+      followingGroup,
+      patientId,
+      patientName,
+      roomNumber,
+      severity
+    };
   });
 
   const severityOptions = ["mild", "moderate", "critical", "normal"];
   const statusOptions = ["present", "registered", "absent"];
   const genderOptions = ["male", "female"];
 
-  // Save to sessionStorage whenever values change
+  // Persist filters to storage
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
-  }, [searchTerm]);
+    try {
+      const localValue = JSON.stringify({
+        followingGroup: filters.followingGroup,
+        gender: filters.gender,
+        status: filters.status
+      });
+      localStorage.setItem(STORAGE_KEY, localValue);
 
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEYS.SHOW_FILTERS, String(showFilters));
-  }, [showFilters]);
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEYS.SORT_CONFIG, JSON.stringify(sortConfig));
-  }, [sortConfig]);
-
-  useEffect(() => {
-    sessionStorage.setItem(STORAGE_KEYS.FILTERS, JSON.stringify(filters));
+      const sessionValue = JSON.stringify({
+        patientId: filters.patientId,
+        patientName: filters.patientName,
+        roomNumber: filters.roomNumber,
+        severity: filters.severity,
+        followingGroup: filters.followingGroup,
+        gender: filters.gender,
+        status: filters.status
+      });
+      sessionStorage.setItem(STORAGE_KEY, sessionValue);
+    } catch { }
   }, [filters]);
 
   // Fetch permission data on component mount
@@ -298,16 +328,20 @@ const ReportList = () => {
 
   const clearFilters = () => {
     if (!hasAccess()) return;
-    
+
     setFilters(DEFAULT_FILTERS);
     setSearchTerm('');
     setSortConfig({ key: 'reportId', direction: 'desc' });
     setShowFilters(false);
-    
-    // Clear session storage for this page
-    Object.values(STORAGE_KEYS).forEach(key => {
-      sessionStorage.removeItem(key);
-    });
+
+    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
+
+    // Remove legacy keys
+    sessionStorage.removeItem('medicalReportList_searchTerm');
+    sessionStorage.removeItem('medicalReportList_showFilters');
+    sessionStorage.removeItem('medicalReportList_sortConfig');
+    sessionStorage.removeItem('medicalReportList_filters');
   };
 
   const SortIcon = ({ column }: { column: keyof MedicalReportWithPatientName }) => {
@@ -319,7 +353,7 @@ const ReportList = () => {
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+        <div className="bg-white sticky top-0 z-10 px-4 py-3 border-b border-gray-100 hidden sm:block">
           <div className="max-w-6xl mx-auto flex justify-between items-center">
             <div className="flex items-center gap-6">
               <button
@@ -336,7 +370,7 @@ const ReportList = () => {
             </div>
             <button
               disabled
-              className="flex items-center gap-2 px-4 py-2 bg-slate-300 text-white rounded-lg transition-all text-sm font-medium shadow-sm cursor-not-allowed opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-300 text-white rounded-lg transition-all text-sm font-medium cursor-not-allowed opacity-50"
             >
               <FiPlus /> New Report
             </button>
@@ -359,7 +393,7 @@ const ReportList = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
       {/* Sticky Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
+      <div className="bg-white sticky top-0 z-10 px-4 py-3 border-b border-gray-100 hidden sm:block">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-6">
             <button
@@ -395,19 +429,19 @@ const ReportList = () => {
       {loading ? (
         <ReportListSkeleton />
       ) : (
-        <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6">
+        <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-8 space-y-6">
           {/* Search & Filter Bar */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-50 bg-white">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-row items-center justify-between gap-2 sm:gap-4">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FiSearch className="text-slate-400" />
                   </div>
                   <input
                     type="text"
-                    placeholder="Search by patient name, title, following group, room number..."
-                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
+                    placeholder="Search patient, title, group, room..."
+                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg bg-transparent sm:bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     disabled={!hasAccess()}
@@ -417,16 +451,16 @@ const ReportList = () => {
                   <button
                     onClick={() => setShowFilters(!showFilters)}
                     disabled={!hasAccess()}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${showFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all border ${showFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-transparent sm:bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
                       } ${!hasAccess() ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    <FiFilter /> Filters
+                    <FiFilter /> <span className="hidden xs:inline">Filters</span>
                   </button>
                   {(searchTerm || Object.values(filters).some(v => v) || sortConfig.key !== 'reportId' || sortConfig.direction !== 'desc') && (
                     <button
                       onClick={clearFilters}
                       disabled={!hasAccess()}
-                      className="text-xs text-slate-500 hover:text-red-600 font-semibold px-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="text-xs text-slate-500 hover:text-red-600 font-semibold px-1 sm:px-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Reset
                     </button>
@@ -436,79 +470,166 @@ const ReportList = () => {
             </div>
 
             {showFilters && (
-              <div className="p-4 bg-slate-50/50 grid grid-cols-1 md:grid-cols-8 gap-4 border-b border-slate-100">
-                {['patientId', 'patientName', 'title', 'followingGroup', 'roomNumber'].map((field) => (
-                  <div key={field} className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">
-                      {field.replace(/([A-Z])/g, ' $1')}
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none"
-                      value={(filters as any)[field]}
-                      onChange={(e) => setFilters(p => ({ ...p, [field]: e.target.value }))}
+              <div className="p-3 border-b border-slate-100">
+                {/* Desktop View: Grid */}
+                <div className="hidden sm:grid grid-cols-4 lg:grid-cols-8 gap-4">
+                  {['patientId', 'patientName', 'title', 'followingGroup', 'roomNumber'].map((field) => (
+                    <div key={field} className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">
+                        {field.replace(/([A-Z])/g, ' $1')}
+                      </label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                        value={(filters as any)[field]}
+                        onChange={(e) => setFilters(p => ({ ...p, [field]: e.target.value }))}
+                        disabled={!hasAccess()}
+                      />
+                    </div>
+                  ))}
+                  {/* Severity filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Severity</label>
+                    <select
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 capitalize"
+                      value={filters.severity}
+                      onChange={(e) => setFilters(p => ({ ...p, severity: e.target.value }))}
                       disabled={!hasAccess()}
-                      placeholder=""
-                    />
+                    >
+                      <option value="">All</option>
+                      {severityOptions.map(option => (
+                        <option key={option} value={option} className="capitalize">
+                          {option}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                ))}
-                {/* Severity filter */}
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Severity</label>
-                  <select
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none capitalize"
-                    value={filters.severity}
-                    onChange={(e) => setFilters(p => ({ ...p, severity: e.target.value }))}
-                    disabled={!hasAccess()}
-                  >
-                    <option value="">All</option>
-                    {severityOptions.map(option => (
-                      <option key={option} value={option} className="capitalize">
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Status filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
+                    <select
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 capitalize"
+                      value={filters.status}
+                      onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}
+                      disabled={!hasAccess()}
+                    >
+                      <option value="">All</option>
+                      {statusOptions.map(option => (
+                        <option key={option} value={option} className="capitalize">
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {/* Gender filter */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Gender</label>
+                    <select
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 capitalize"
+                      value={filters.gender}
+                      onChange={(e) => setFilters(p => ({ ...p, gender: e.target.value }))}
+                      disabled={!hasAccess()}
+                    >
+                      <option value="">All</option>
+                      {genderOptions.map(option => (
+                        <option key={option} value={option} className="capitalize">
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                {/* Status filter */}
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
-                  <select
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none capitalize"
-                    value={filters.status}
-                    onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}
-                    disabled={!hasAccess()}
-                  >
-                    <option value="">All</option>
-                    {statusOptions.map(option => (
-                      <option key={option} value={option} className="capitalize">
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {/* Gender filter */}
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Gender</label>
-                  <select
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none capitalize"
-                    value={filters.gender}
-                    onChange={(e) => setFilters(p => ({ ...p, gender: e.target.value }))}
-                    disabled={!hasAccess()}
-                  >
-                    <option value="">All</option>
-                    {genderOptions.map(option => (
-                      <option key={option} value={option} className="capitalize">
-                        {option}
-                      </option>
-                    ))}
-                  </select>
+
+                {/* Mobile View: Rows */}
+                <div className="sm:hidden space-y-3">
+                  {/* Line One: Patient ID, Gender */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Pt. ID</label>
+                      <input
+                        type="text"
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.patientId}
+                        onChange={(e) => setFilters(p => ({ ...p, patientId: e.target.value }))}
+                        disabled={!hasAccess()}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Gender</label>
+                      <select
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent capitalize"
+                        value={filters.gender}
+                        onChange={(e) => setFilters(p => ({ ...p, gender: e.target.value }))}
+                        disabled={!hasAccess()}
+                      >
+                        <option value="">All</option>
+                        {genderOptions.map(option => (
+                          <option key={option} value={option} className="capitalize">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Line Two: Severity, Status */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Severity</label>
+                      <select
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent capitalize"
+                        value={filters.severity}
+                        onChange={(e) => setFilters(p => ({ ...p, severity: e.target.value }))}
+                        disabled={!hasAccess()}
+                      >
+                        <option value="">All</option>
+                        {severityOptions.map(option => (
+                          <option key={option} value={option} className="capitalize">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
+                      <select
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent capitalize"
+                        value={filters.status}
+                        onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}
+                        disabled={!hasAccess()}
+                      >
+                        <option value="">All</option>
+                        {statusOptions.map(option => (
+                          <option key={option} value={option} className="capitalize">{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Line Three: Following Group, Room */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Group</label>
+                      <input
+                        type="text"
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.followingGroup}
+                        onChange={(e) => setFilters(p => ({ ...p, followingGroup: e.target.value }))}
+                        disabled={!hasAccess()}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Room</label>
+                      <input
+                        type="text"
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.roomNumber}
+                        onChange={(e) => setFilters(p => ({ ...p, roomNumber: e.target.value }))}
+                        disabled={!hasAccess()}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Table Container */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          {/* Table Container - Desktop View */}
+          <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50/80 border-b border-slate-200">
@@ -631,6 +752,90 @@ const ReportList = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Card View - Mobile View */}
+          <div className="sm:hidden space-y-4">
+            {filteredReports.map((report) => (
+              <div
+                key={report.reportId || `report-mobile-${Math.random()}`}
+                onClick={() => hasAccess() && navigate(`/user/medical/${report.reportId}`)}
+                className={`rounded-xl border border-slate-200 overflow-hidden p-4 shadow-sm ${hasAccess() ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'}`}
+              >
+                <div className="flex gap-4">
+                  {/* First cell: ID & Status */}
+                  <div className="w-1/4 border-r border-slate-100 pr-2 flex flex-col justify-between">
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Report ID</div>
+                      <div className="text-sm font-bold text-indigo-600">#{report.reportId}</div>
+                    </div>
+
+                    <div className="mt-4">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Severity</div>
+                      <span className={`inline-flex items-center justify-center w-full py-1 text-[10px] uppercase font-bold rounded border ${report.severity === 'mild' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                          report.severity === 'normal' ? 'bg-green-50 text-green-700 border-green-100' :
+                            report.severity === 'moderate' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                              'bg-red-50 text-red-700 border-red-100'
+                        }`}>
+                        {report.severity}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Second cell: Details */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-800 capitalize truncate pr-2">{report.patientName}</span>
+                      {report.patientStatus ? (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${report.patientStatus === 'active' || report.patientStatus === 'present' ? 'bg-green-50 text-green-700 border-green-100' :
+                            report.patientStatus === 'pending' || report.patientStatus === 'registered' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                              'bg-red-50 text-red-700 border-red-100'
+                          }`}>
+                          {report.patientStatus.toUpperCase()}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-50 text-slate-500 border-slate-200">
+                          UNKNOWN
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-1">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16 flex-shrink-0">Title:</span>
+                        <span className="text-xs font-medium text-slate-800 capitalize line-clamp-1">{report.title}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Group:</span>
+                        <span className="text-xs text-indigo-600 font-bold max-w-[120px] truncate">{report.followingGroup || '-'}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Room:</span>
+                        <span className={`text-xs font-bold ${report.roomNumber === 'Waiting List' ? 'text-amber-600' :
+                            report.roomNumber === 'not present' ? 'text-red-600' :
+                              report.roomNumber === 'not staying' ? 'text-orange-600' :
+                                report.roomNumber ? 'text-slate-700' : 'text-slate-400'
+                          }`}>
+                          {report.roomNumber === 'Waiting List' ? 'WL' :
+                            report.roomNumber === 'not present' ? 'NP' :
+                              report.roomNumber === 'not staying' ? 'NS' :
+                                report.roomNumber || '-'}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Gender:</span>
+                        <span className="text-xs text-slate-700 capitalize">{report.patientGender || '-'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {filteredReports.length === 0 && (
+              <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-dashed border-slate-300">
+                No medical reports found matching your criteria.
+              </div>
+            )}
           </div>
           <div className="text-xs text-slate-400 px-2">
             Showing {filteredReports.length} of {reports.length} total reports

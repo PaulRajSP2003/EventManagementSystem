@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import StudentListCompound from '../../components/StudentListCompound';
 import LeaderListCompound from '../../components/LeaderListCompound';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../../permission';
+import { API_BASE } from '../../../../config/api';
 import { FiAlertTriangle, FiEdit2, FiRotateCcw } from 'react-icons/fi';
 
 // ────────────────────────────────────────────────
@@ -41,8 +42,8 @@ interface RoomKeyHandlerProps {
   initialData?: RoomKeyData;
 }
 
-// API Base URL - move to env variable in production
-const API_BASE_URL = 'https://localhost:7135/api';
+// API Base URL
+const API_BASE_URL = API_BASE;
 
 // ────────────────────────────────────────────────
 // Skeleton Loader Component (Compact Version)
@@ -118,12 +119,11 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
   roomId,
 }) => {
   const navigate = useNavigate();
-  
+
   // Permission data state
   const [permissionData, setPermissionData] = useState<PermissionData | null>(null);
   const [permissionLoading, setPermissionLoading] = useState(true);
   const [permissionError, setPermissionError] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [data, setData] = useState<RoomKeyData>({ roomId: roomId || '', keyHistory: [] });
   const [showModal, setShowModal] = useState(false);
@@ -156,14 +156,14 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
         console.error('Failed to load permissions:', error);
         setPermissionData(null);
         setPermissionError(true);
-        
+
         // Check for 403 Forbidden error
         if (error.message === 'Forbidden' || error.message?.includes('403')) {
-          setErrorMessage("Access Forbidden: You don't have permission");
+          // Access Forbidden
         } else if (error.message === 'Unauthorized' || error.message?.includes('401')) {
-          setErrorMessage("Unauthorized: Please log in");
+          // Unauthorized
         } else {
-          setErrorMessage(error.message || 'Failed to load permissions');
+          // Error loading permissions
         }
       } finally {
         setPermissionLoading(false);
@@ -296,8 +296,11 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
   const MINUTES_EDITS = 1 * 60 * 1000; // 1 minute in milliseconds
 
   const isWithinEditWindow = (issuedAt: string): boolean => {
-    const issuedTime = new Date(issuedAt).getTime();
-    return now.getTime() - issuedTime <= MINUTES_EDITS;
+    const issuedTime = parseUTC(issuedAt).getTime();
+    // Use now (which is updated every second) to compare
+    // Add 10 seconds buffer for clock skew between client and server
+    const BUFFER = 10 * 1000;
+    return (now.getTime() - issuedTime) <= (MINUTES_EDITS + BUFFER);
   };
 
   const canEditRecord = (record?: KeyRecord): boolean => {
@@ -314,24 +317,43 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
     return isWithinEditWindow(record.issuedAt);
   };
 
-  // ────────────────────────────────────────────────
-  // Helpers
-  // ────────────────────────────────────────────────
+
+  const parseUTC = (iso: string): Date => {
+    if (!iso) return new Date(NaN);
+    const normalized = /[Zz]$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : iso + 'Z';
+    return new Date(normalized);
+  };
+
+  /** Format a UTC ISO string as IST (UTC+5:30) */
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleString('en-IN', {
+    parseUTC(iso).toLocaleString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true,
+      timeZone: 'Asia/Kolkata',   // ← always IST
     });
 
-  const calculateDuration = (start: string, end: string | null) => {
-    const startTime = new Date(start).getTime();
-    const endTime = end ? new Date(end).getTime() : now.getTime();
+  const calculateDuration = (
+    start: string,
+    end: string | null,
+    status: KeyRecord['status']
+  ) => {
+    const startTime = parseUTC(start).getTime();
+
+    let endTime: number;
+    if (status === 'ISSUED') {
+      endTime = now.getTime();
+    } else {
+      endTime = end ? parseUTC(end).getTime() : now.getTime();
+    }
+
     const diffMs = endTime - startTime;
-    const seconds = Math.floor(diffMs / 1000);
-    const mins = Math.floor(seconds / 60);
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    const s = seconds % 60;
+    if (diffMs < 0) return '0s';
+
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+
     if (h > 0) return `${h}h ${m}m ${s}s`;
     if (m > 0) return `${m}m ${s}s`;
     return `${s}s`;
@@ -563,30 +585,31 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
             </p>
           </div>
         </div>
-        
+
         {/* Issue Key button - always visible, disabled if no permission */}
         <button
           onClick={() => { resetForm(); setShowModal(true); }}
           disabled={!isKeyAvailable || !hasKeyHandingAccess() || loading}
-          className={`px-6 py-2.5 rounded-xl font-bold transition-all active:scale-95 ${
-            isKeyAvailable && hasKeyHandingAccess() && !loading
-              ? 'bg-blue-600 text-white hover:bg-blue-700' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-          }`}
+          className={`px-6 py-2.5 rounded-xl font-bold transition-all active:scale-95 ${isKeyAvailable && hasKeyHandingAccess() && !loading
+            ? 'bg-blue-600 text-white hover:bg-blue-700'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+            }`}
           title={!hasKeyHandingAccess() ? "You don't have permission to issue keys" : ""}
         >
           {loading ? 'Processing...' : 'Issue Key'}
         </button>
       </div>
 
-      {/* History Table */}
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
-        <div className="overflow-x-auto">
+      {/* History Table / Mobile Cards */}
+      <div className="bg-white dark:bg-gray-900 sm:rounded-2xl sm:border sm:border-gray-200 dark:sm:border-gray-800 overflow-hidden">
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
             <thead className="bg-gray-50 dark:bg-gray-800/50">
               <tr className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 <th className="px-6 py-4">Custodian</th>
-                <th className="px-6 py-4 text-center">Status</th>
+                <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Time Issued</th>
                 <th className="px-6 py-4">Duration</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -598,7 +621,7 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
                 .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime())
                 .map(record => (
                   <tr
-                    key={record.id}
+                    key={`desktop-record-${record.id}`}
                     onClick={() => setViewRecord(record)}
                     className="hover:bg-gray-50 dark:hover:bg-blue-900/10 cursor-pointer transition-colors"
                   >
@@ -608,9 +631,9 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
                         {getDisplayType(record.holder.type)} • ID #{record.holder.id}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-center align-middle">
+                    <td className="px-6 py-4 align-middle">
                       <span
-                        className={`inline-block w-20 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${getStatusStyle(record.status)}`}
+                        className={`inline-block w-20 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider text-center ${getStatusStyle(record.status)}`}
                       >
                         {record.status}
                       </span>
@@ -618,18 +641,17 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
 
                     <td className="px-6 py-4 text-xs text-gray-500">{formatDate(record.issuedAt)}</td>
                     <td className="px-6 py-4 text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
-                      {calculateDuration(record.issuedAt, record.returnedAt)}
+                      {calculateDuration(record.issuedAt, record.returnedAt, record.status)}
                     </td>
                     <td className="px-6 py-4 text-right flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                       {/* EDIT BUTTON - disabled if no permission */}
                       <button
                         onClick={() => openEditModal(record)}
                         disabled={!canEditRecord(record) || loading}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-md transition-all duration-200 shadow-sm active:scale-95 ${
-                          canEditRecord(record) && !loading
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                        }`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-md transition-all duration-200 shadow-sm active:scale-95 ${canEditRecord(record) && !loading
+                          ? 'bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                          }`}
                         title={!hasKeyHandingAccess() ? "You don't have permission to edit keys" : ""}
                       >
                         <FiEdit2 className="w-3 h-3" />
@@ -642,11 +664,10 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
                           <button
                             onClick={() => handleUpdateStatus(record.id, 'RETURNED')}
                             disabled={!hasKeyHandingAccess() || loading}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-md transition-all duration-200 shadow-sm active:scale-95 ${
-                              hasKeyHandingAccess() && !loading
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white'
-                                : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                            }`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-md transition-all duration-200 shadow-sm active:scale-95 ${hasKeyHandingAccess() && !loading
+                              ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-600 hover:text-white'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                              }`}
                             title={!hasKeyHandingAccess() ? "You don't have permission to return keys" : ""}
                           >
                             <FiRotateCcw className="w-3 h-3" />
@@ -657,11 +678,10 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
                           <button
                             onClick={() => handleLostClick(record.id)}
                             disabled={!hasKeyHandingAccess() || loading}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-md transition-all duration-200 shadow-sm active:scale-95 ${
-                              hasKeyHandingAccess() && !loading
-                                ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white'
-                                : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
-                            }`}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 font-semibold text-xs rounded-md transition-all duration-200 shadow-sm active:scale-95 ${hasKeyHandingAccess() && !loading
+                              ? 'bg-red-50 text-red-700 hover:bg-red-600 hover:text-white'
+                              : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                              }`}
                             title={!hasKeyHandingAccess() ? "You don't have permission to mark keys as lost" : ""}
                           >
                             <FiAlertTriangle className="w-3 h-3" />
@@ -681,6 +701,94 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards View */}
+        <div className="block sm:hidden space-y-3">
+          {data.keyHistory.length === 0 ? (
+            <div className="p-8 text-center border border-dashed border-gray-200 dark:border-gray-800 rounded-xl text-gray-400 text-xs">
+              No key history found for this room.
+            </div>
+          ) : (
+            data.keyHistory
+              .slice()
+              .sort((a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime())
+              .map((record, index) => (
+                <div
+                  key={`mobile-record-${record.id}-${index}`}
+                  onClick={() => setViewRecord(record)}
+                  className="p-3 border border-slate-100 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 flex flex-col gap-3 shadow-sm active:scale-[0.98] transition-transform"
+                >
+                  {/* Top Row: Custodian + Status */}
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h4 className="font-bold text-slate-800 dark:text-white text-[13px] capitalize">
+                        {record.holder.name || 'Anonymous'}
+                      </h4>
+                      <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                        {getDisplayType(record.holder.type)} • ID #{record.holder.id}
+                      </p>
+                    </div>
+                    <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider text-center ${getStatusStyle(record.status)}`}>
+                      {record.status}
+                    </span>
+                  </div>
+
+                  {/* Middle Row: Duration Info */}
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 dark:bg-gray-800/50 p-2 rounded border border-slate-100 dark:border-gray-700">
+                    <div>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase">About</p>
+                      <p className="text-[10px] text-slate-600 dark:text-gray-300 font-medium mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis">
+                        {formatDate(record.issuedAt).split(' | ')[0] || formatDate(record.issuedAt)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase">Duration</p>
+                      <p className="text-[10px] font-bold text-slate-700 dark:text-gray-200 mt-0.5">
+                        {calculateDuration(record.issuedAt, record.returnedAt, record.status)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+                    {/* EDIT */}
+                    {canEditRecord(record) && (
+                      <button
+                        onClick={() => openEditModal(record)}
+                        disabled={loading}
+                        className="w-full py-1.5 text-[10px] font-bold text-blue-600 bg-blue-50/50 border border-blue-100 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded transition-all uppercase tracking-tighter"
+                        title={!hasKeyHandingAccess() ? "No permission" : ""}
+                      >
+                        Edit Details
+                      </button>
+                    )}
+
+                    {record.status === 'ISSUED' && (
+                      <div className="flex gap-1.5">
+                        {/* RETURN */}
+                        <button
+                          onClick={() => handleUpdateStatus(record.id, 'RETURNED')}
+                          disabled={!hasKeyHandingAccess() || loading}
+                          className="flex-1 py-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 border border-emerald-100 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 rounded transition-all uppercase tracking-tighter disabled:opacity-50 disabled:grayscale"
+                        >
+                          Return Key
+                        </button>
+
+                        {/* LOST */}
+                        <button
+                          onClick={() => handleLostClick(record.id)}
+                          disabled={!hasKeyHandingAccess() || loading}
+                          className="flex-1 py-1.5 text-[10px] font-bold text-red-600 bg-red-50/50 border border-red-100 hover:bg-red-600 hover:text-white hover:border-red-600 rounded transition-all uppercase tracking-tighter disabled:opacity-50 disabled:grayscale"
+                        >
+                          Mark Lost
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))
+          )}
         </div>
       </div>
 
@@ -706,15 +814,16 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">
-                    Additional Notes (Optional)
+                    Additional Notes <span className="text-red-500">(Required)</span>
                   </label>
                   <textarea
-                    placeholder="Add details about how the key was lost, circumstances, etc..."
+                    placeholder="Please explain how the key was lost..."
                     value={lostNotes}
                     onChange={(e) => setLostNotes(e.target.value)}
-                    className="w-full p-4 rounded-xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-red-500 outline-none resize-y min-h-[100px]"
+                    className="w-full p-4 rounded-xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm outline-none resize-y min-h-[100px]"
                     rows={4}
                     autoFocus
+                    required
                   />
                 </div>
 
@@ -739,13 +848,12 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
                 </button>
                 <button
                   onClick={confirmLostStatus}
-                  disabled={loading || !hasKeyHandingAccess()}
-                  className={`flex-1 py-4 rounded-xl font-bold transition-all ${
-                    hasKeyHandingAccess() && !loading
-                      ? 'bg-red-600 text-white hover:bg-red-700 active:scale-95'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
-                  }`}
-                  title={!hasKeyHandingAccess() ? "You don't have permission to mark keys as lost" : ""}
+                  disabled={loading || !hasKeyHandingAccess() || !lostNotes.trim()}
+                  className={`flex-1 py-4 rounded-xl font-bold transition-all ${hasKeyHandingAccess() && !loading && lostNotes.trim()
+                    ? 'bg-red-600 text-white hover:bg-red-700 active:scale-95'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60'
+                    }`}
+                  title={!hasKeyHandingAccess() ? "You don't have permission to mark keys as lost" : !lostNotes.trim() ? "Please provide notes" : ""}
                 >
                   {loading ? 'Processing...' : 'Confirm Lost'}
                 </button>
@@ -759,63 +867,63 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
       {viewRecord && !showModal && !showLostConfirmation && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-lg overflow-hidden border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-200">
-            <div className="p-8 space-y-6">
+            <div className="p-5 sm:p-8 space-y-4 sm:space-y-6">
               <div className="flex justify-between items-start">
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white">Log Details</h3>
-                <button onClick={() => setViewRecord(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">Log Details</h3>
+                <button onClick={() => setViewRecord(null)} className="text-gray-400 hover:text-gray-600 text-lg sm:text-xl">✕</button>
               </div>
 
-              <div className="p-5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border dark:border-gray-700 flex justify-between items-center">
+              <div className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border dark:border-gray-700 flex justify-between items-center">
                 <div>
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Active Duration</p>
-                  <p className="text-3xl font-black text-gray-900 dark:text-white tabular-nums">
-                    {calculateDuration(viewRecord.issuedAt, viewRecord.returnedAt)}
+                  <p className="text-[9px] sm:text-[10px] font-bold text-blue-500 uppercase tracking-widest">Active Duration</p>
+                  <p className="text-xl sm:text-3xl font-black text-gray-900 dark:text-white tabular-nums">
+                    {calculateDuration(viewRecord.issuedAt, viewRecord.returnedAt, viewRecord.status)}
                   </p>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusStyle(viewRecord.status)}`}>
+                <span className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold ${getStatusStyle(viewRecord.status)}`}>
                   {viewRecord.status}
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 text-sm">
+              <div className="grid grid-cols-2 gap-4 sm:gap-6 text-xs sm:text-sm">
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-gray-400 uppercase">Custodian</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase">Custodian</p>
                   <p className="font-bold dark:text-white">{viewRecord.holder.name || '—'}</p>
-                  <p className="text-gray-500">
+                  <p className="text-gray-500 text-[10px] sm:text-xs">
                     {getDisplayType(viewRecord.holder.type)} (ID: {viewRecord.holder.id})
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-bold text-gray-400 uppercase">Timeframe</p>
+                  <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase">Timeframe</p>
                   <p className="dark:text-gray-300"><b>Issued:</b> {formatDate(viewRecord.issuedAt)}</p>
                   <p className="dark:text-gray-300"><b>Return:</b> {viewRecord.returnedAt ? formatDate(viewRecord.returnedAt) : '—'}</p>
                 </div>
               </div>
 
-              <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 border-l-4 border-yellow-400 rounded text-sm italic text-gray-700 dark:text-gray-300">
+              <div className="p-3 sm:p-4 bg-yellow-50 dark:bg-yellow-900/10 border-l-4 border-yellow-400 rounded text-xs sm:text-sm italic text-gray-700 dark:text-gray-300">
                 "{viewRecord.notes || "No notes recorded for this transaction."}"
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 sm:gap-3">
                 <button
                   onClick={() => handleViewProfile(viewRecord.holder)}
-                  className="w-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-3.5 rounded-xl font-bold transition hover:bg-blue-100"
+                  className="w-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 py-2.5 sm:py-3.5 rounded-xl text-xs sm:text-sm font-bold transition hover:bg-blue-100"
                 >
                   View {getDisplayType(viewRecord.holder.type).toLowerCase()} profile
                 </button>
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                   {canEditRecord(viewRecord) && (
                     <button
                       onClick={() => { setViewRecord(null); openEditModal(viewRecord); }}
                       disabled={loading}
-                      className="flex-1 border dark:border-gray-600 dark:text-white py-3 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
+                      className="flex-1 border dark:border-gray-600 dark:text-white py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50"
                     >
                       Edit Log
                     </button>
                   )}
                   <button
                     onClick={() => setViewRecord(null)}
-                    className={`${canEditRecord(viewRecord) ? 'flex-1' : 'w-full'} bg-gray-900 dark:bg-white dark:text-black text-white py-3 rounded-xl font-bold`}
+                    className={`${canEditRecord(viewRecord) ? 'flex-1' : 'w-full'} bg-gray-900 dark:bg-white dark:text-black text-white py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold`}
                   >
                     Close
                   </button>
@@ -829,21 +937,25 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
       {/* Edit/Issue Form Modal */}
       {showModal && !showLostConfirmation && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-          <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl w-full max-w-md border dark:border-gray-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <h2 className="text-3xl font-black mb-6 text-gray-900 dark:text-white">
+          <div className="bg-white dark:bg-gray-900 p-5 sm:p-8 rounded-3xl w-full max-w-md border dark:border-gray-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <h2 className="text-xl sm:text-3xl font-black mb-4 sm:mb-6 text-gray-900 dark:text-white">
               {editingRecordId ? 'Update Record' : 'Issue New Key'}
             </h2>
 
             {isEditingOldRecord && (
               <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl text-sm text-amber-800 dark:text-amber-200">
-                <strong>Notice:</strong> The 1-minute edit window has expired.<br />
-                You can still update <strong>notes</strong>, but the assigned person cannot be changed.
+                <div className="flex items-center gap-2 font-bold mb-1">
+                  <FiAlertTriangle className="text-amber-500" />
+                  <span>Edit Window Expired</span>
+                </div>
+                The 1-minute period to change the <strong>assigned person</strong> has passed. 
+                You can still update <strong>notes</strong>.
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Assign To</label>
+                <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1 sm:mb-2">Assign To</label>
                 <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
                   {(['S', 'L'] as const).map(type => (
                     <button
@@ -862,18 +974,16 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
                           setHolderName('');
                         }
                       }}
-                      className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all ${
-                        holderType === type
-                          ? 'bg-white dark:bg-gray-700 dark:text-white text-gray-900'
-                          : 'text-gray-400 dark:text-gray-500'
-                      } ${
-                        Boolean(isEditingOldRecord || loading || (editingRecordId && (() => {
+                      className={`flex-1 py-2 sm:py-2.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${holderType === type
+                        ? 'bg-white dark:bg-gray-700 dark:text-white text-gray-900'
+                        : 'text-gray-400 dark:text-gray-500'
+                        } ${Boolean(isEditingOldRecord || loading || (editingRecordId && (() => {
                           const rec = data.keyHistory.find(r => r.id === editingRecordId);
                           return rec && !canChangeHolder(rec);
-                        })())) || !hasKeyHandingAccess() 
-                          ? 'opacity-50 cursor-not-allowed' 
+                        })())) || !hasKeyHandingAccess()
+                          ? 'opacity-50 cursor-not-allowed'
                           : ''
-                      }`}
+                        }`}
                     >
                       {type === 'L' ? 'LEADER' : 'STUDENT'}
                     </button>
@@ -899,43 +1009,42 @@ const RoomKeyHandler: React.FC<RoomKeyHandlerProps> = ({
               </div>
 
               {holderId && (
-                <div className={`p-4 rounded-2xl border ${isEditingOldRecord ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'}`}>
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Selected Custodian</p>
-                  <p className="font-bold dark:text-white text-lg capitalize">{holderName || '—'}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                <div className={`p-3 sm:p-4 rounded-2xl border ${isEditingOldRecord ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'}`}>
+                  <p className="text-[9px] sm:text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-1">Selected Custodian</p>
+                  <p className="font-bold dark:text-white text-sm sm:text-lg capitalize">{holderName || '—'}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {getDisplayType(holderType)} • ID: {holderId}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-2">Notes</label>
+                <label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1 sm:mb-2">Notes</label>
                 <textarea
                   placeholder="Add internal notes about this handover..."
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   disabled={loading || !hasKeyHandingAccess()}
-                  className="w-full p-4 rounded-xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-y min-h-[100px] disabled:opacity-50"
+                  className="w-full p-3 sm:p-4 rounded-xl border dark:bg-gray-800 dark:border-gray-700 dark:text-white text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-y min-h-[80px] sm:min-h-[100px] disabled:opacity-50"
                   rows={4}
                 />
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-3 sm:gap-4 pt-2 sm:pt-4">
                 <button
                   onClick={() => { setShowModal(false); resetForm(); }}
                   disabled={loading}
-                  className="flex-1 py-4 text-gray-500 dark:text-gray-400 font-bold hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-50"
+                  className="flex-1 py-3 sm:py-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 font-bold hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   disabled={!holderId || !hasKeyHandingAccess() || loading}
                   onClick={handleSave}
-                  className={`flex-1 py-4 rounded-xl font-bold transition-all ${
-                    holderId && hasKeyHandingAccess() && !loading
-                      ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                  }`}
+                  className={`flex-1 py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-bold transition-all ${holderId && hasKeyHandingAccess() && !loading
+                    ? 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                    }`}
                   title={!hasKeyHandingAccess() ? "You don't have permission to issue keys" : ""}
                 >
                   {loading ? 'Saving...' : (editingRecordId ? 'Save Changes' : 'Confirm Issue')}

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  FiArrowLeft,
   FiSave,
   FiInfo,
   FiCalendar,
@@ -12,6 +11,7 @@ import {
 import { eventAPI } from '../../api/EventData';
 import type { Event } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
+import StickyHeader from '../components/StickyHeader';
 
 const EventEditSkeleton = () => (
   <div className="min-h-screen bg-slate-50 pb-12">
@@ -209,30 +209,17 @@ export default function EventEdit() {
   return (
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50 pb-12">
-        {/* Sticky Header */}
-        <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group"
-              >
-                <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                Back
-              </button>
-              <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block" />
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block truncate max-w-md">
-                {pageTitle}
-              </h1>
-            </div>
-            <button
-              onClick={() => navigate('/owner/event')}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              <FiCalendar /> View Events
-            </button>
-          </div>
-        </div>
+        <StickyHeader 
+          title={pageTitle}
+          onBack={() => navigate(-1)}
+        >
+          <button
+            onClick={() => navigate('/owner/event')}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiCalendar /> View Events
+          </button>
+        </StickyHeader>
 
         {loading ? (
           <EventEditSkeleton />
@@ -315,7 +302,7 @@ export default function EventEdit() {
                         value={formData.from || ''}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm transition-all"
                       />
                     </div>
 
@@ -329,7 +316,7 @@ export default function EventEdit() {
                         value={formData.to || ''}
                         onChange={handleChange}
                         required
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm transition-all"
                       />
                     </div>
                   </div>

@@ -7,7 +7,9 @@ import LeaderListCompound from '../../components/LeaderListCompound';
 import type { Leader } from '../../../../types';
 import type { mainLeaderData } from '../../../../types';
 import { leaderAPI } from '../../api/LeaderData';
+import { API_BASE } from '../../../../config/api';
 import { PAGE_PERMISSIONS, fetchPermissionData, canAccess, isAdminOrCoAdmin, type PermissionData } from '../../permission';
+import { useNavigate } from 'react-router-dom';
 
 interface RoomLeaderAssignProps {
   activeRoomName: string;
@@ -93,6 +95,7 @@ const SkeletonLoader = () => {
 };
 
 const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gender }) => {
+  const navigate = useNavigate();
   const [permissionData, setPermissionData] = useState<PermissionData | null>(null);
   const [permissionLoading, setPermissionLoading] = useState(true);
 
@@ -214,7 +217,7 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
 
   // API function to save main leader
   const saveMainLeader = async (roomId: number, leaderId: number): Promise<ApiResponse<any>> => {
-    const url = `https://localhost:7135/api/mainLeader/${roomId}/${leaderId}`;
+    const url = `${API_BASE}/mainLeader/${roomId}/${leaderId}`;
 
     const response = await fetch(url, {
       method: 'POST',
@@ -305,8 +308,8 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
 
-      {/* Header Section with Permissions Control */}
-      <div className="px-8 py-6 bg-indigo-50/50 dark:bg-indigo-900/10 border-b dark:border-gray-700">
+      {/* Header Section with Permissions Control - Hidden on Mobile */}
+      <div className="hidden md:block px-8 py-6 bg-indigo-50/50 dark:bg-indigo-900/10 border-b dark:border-gray-700">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
 
           <div className="w-full md:w-[400px]">
@@ -351,10 +354,10 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
               disabled={isSaving || selectedLeaderId === currentLeaderId || !hasActionAccess}
               style={{ minWidth: '160px' }}
               className={`h-[42px] flex items-center justify-center gap-2 px-6 rounded-lg font-bold text-sm transition-all ${saveSuccess
-                  ? 'bg-green-500 text-white'
-                  : hasActionAccess
-                    ? 'bg-indigo-600 hover:bg-indigo-700 text-white disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700'
+                ? 'bg-green-500 text-white'
+                : hasActionAccess
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-400'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-700'
                 }`}
             >
               {isSaving ? (
@@ -384,20 +387,16 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
         </div>
       </div>
 
-      <div className="px-8 py-5 border-b dark:border-gray-700 flex items-center justify-between">
+      <div className="px-6 sm:px-8 py-4 sm:py-5 border-b dark:border-gray-700 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
             Room {currentRoom.roomName} Leadership
           </h2>
-          <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+          <p className="text-[10px] sm:text-sm text-gray-500 flex items-center gap-1 mt-0.5">
             <FiInfo className="w-3 h-3" /> Historical tracking and assignment
           </p>
         </div>
-        {roomId && (
-          <div className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
-            Room ID: {roomId}
-          </div>
-        )}
+
       </div>
 
       <div className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -408,19 +407,22 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
             </h3>
 
             {currentLeader ? (
-              <div className="relative p-6 border-2 border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-2xl overflow-hidden">
-                <div className="absolute top-0 right-0 p-2">
-                  <span className="px-2 py-1 bg-green-500 text-white text-[9px] font-black rounded-bl-lg uppercase">Active</span>
+              <div
+                onClick={() => navigate(`/user/leader/${currentLeader.id}`)}
+                className="relative p-4 sm:p-6 border-2 border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-2xl overflow-hidden cursor-pointer hover:bg-indigo-100/50 transition-colors active:scale-[0.98]"
+              >
+                <div className="absolute top-0 right-0 p-2 border-b border-l border-indigo-100 rounded-bl-lg bg-indigo-50/80 backdrop-blur-sm">
+                  <span className="text-indigo-600 dark:text-indigo-400 text-[9px] font-black uppercase flex items-center gap-1"><FiUserCheck className="w-3 h-3" /> Active Leader</span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-200 font-bold text-xl">
+                <div className="flex items-center gap-3 sm:gap-4 mt-2 sm:mt-0">
+                  <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-indigo-200 dark:bg-indigo-800 flex items-center justify-center text-indigo-700 dark:text-indigo-200 font-bold text-lg sm:text-xl">
                     {currentLeader.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-xl font-extrabold text-gray-900 dark:text-white leading-tight capitalize">
+                    <p className="text-sm sm:text-xl font-extrabold text-gray-900 dark:text-white leading-tight capitalize truncate max-w-[150px] sm:max-w-none">
                       {currentLeader.name}
                     </p>
-                    <p className="text-sm text-gray-500 font-medium capitalize">
+                    <p className="text-[10px] sm:text-sm text-gray-500 font-medium capitalize mt-0.5">
                       ID: {currentLeader.id} • {currentLeader.place}
                     </p>
                   </div>
@@ -445,7 +447,7 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
             <FiClock /> Leadership History
           </h3>
 
-          <div className="border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden">
+          <div className="border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden hidden sm:block">
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
               <thead className="bg-gray-50/50 dark:bg-gray-800/50">
                 <tr>
@@ -486,6 +488,58 @@ const RoomLeaderAssign: React.FC<RoomLeaderAssignProps> = ({ activeRoomName, gen
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View */}
+          <div className="block sm:hidden space-y-3">
+            {pastLeaderObjs.length > 0 ? (
+              [...pastLeaderObjs].reverse().map((obj, index) => {
+                const leader = getLeaderDetails(obj.leaderId);
+                return (
+                  <div
+                    key={`mobile-past-leader-${obj.leaderId}-${index}`}
+                    className="p-3 border border-slate-100 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 flex flex-col shadow-sm"
+                  >
+                    {/* Top Row: Custodian + Status */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <h4 className="font-bold text-slate-800 dark:text-white text-[13px] capitalize">
+                          {leader ? leader.name : 'Unknown Leader'}
+                        </h4>
+                        <p className="text-[9px] text-gray-400 font-bold uppercase mt-0.5">
+                          Leader • ID #{obj.leaderId}
+                        </p>
+                      </div>
+                      <span className="inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider text-center text-gray-400 border border-gray-200 dark:border-gray-700">
+                        Former
+                      </span>
+                    </div>
+
+                    {/* Middle Row: Duration Info (About) */}
+                    <div className="bg-slate-50 dark:bg-gray-800/50 p-2 rounded border border-slate-100 dark:border-gray-700 mt-3">
+                      <p className="text-[8px] font-bold text-slate-400 uppercase">Assigned On</p>
+                      <p className="text-[10px] text-slate-600 dark:text-gray-300 font-medium mt-0.5">
+                        {obj.createdAt ? new Date(obj.createdAt).toLocaleString() : 'Unknown'}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-1.5 mt-3">
+                      <button
+                        onClick={() => navigate(`/user/leader/${obj.leaderId}`)}
+                        className="w-full py-1.5 text-[10px] font-bold text-blue-600 bg-blue-50/50 border border-blue-100 hover:bg-blue-600 hover:text-white hover:border-blue-600 rounded transition-all uppercase tracking-tighter"
+                      >
+                        View Profile
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="p-8 text-center border border-dashed border-gray-200 dark:border-gray-800 rounded-xl text-gray-400 text-xs italic">
+                No previous changes found.
+              </div>
+            )}
           </div>
         </div>
       </div>

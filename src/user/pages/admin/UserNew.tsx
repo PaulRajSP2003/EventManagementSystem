@@ -1,6 +1,6 @@
 // src/user/pages/admin/UserNew.tsx
 import { useState, useEffect } from 'react';
-import { FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
+import { FiCheckCircle } from 'react-icons/fi';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AssignRole from '../components/AssignRole';
@@ -8,6 +8,7 @@ import type { AssignRole as AssignRoleType } from '../../../types';
 import AccessAlert from '../components/AccessAlert';
 import { PAGE_PERMISSIONS, fetchPermissionData, isAdmin } from '../permission';
 import { createUser } from './api/UserData';
+import StickyHeader from '../components/StickyHeader';
 
 // Skeleton (unchanged)
 const UserNewSkeleton = () => {
@@ -102,6 +103,13 @@ const permissionStructure = [
       { name: 'Room Leader Assign', permissionId: PAGE_PERMISSIONS.ROOM_LEADER_ASSIGN },
     ],
   },
+  {
+    label: 'Task Management',
+    permissionId: 'TASK_GROUP',
+    items: [
+      { name: 'Task Details', permissionId: PAGE_PERMISSIONS.TASK_DETAILS },
+    ],
+  },
 ];
 
 // Permissions Section with ON/OFF toggles + disabled support
@@ -147,14 +155,12 @@ const PermissionsSection: React.FC<PermissionsSectionProps> = ({
                   type="button"
                   disabled={disabled}
                   onClick={() => handleGroupToggle(group, !allEnabled)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                    allEnabled ? 'bg-indigo-600' : 'bg-slate-300'
-                  } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${allEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                    } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
-                      allEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${allEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>
@@ -177,14 +183,12 @@ const PermissionsSection: React.FC<PermissionsSectionProps> = ({
                         onClick={() =>
                           !disabled && onPermissionChange(item.permissionId as number, !isEnabled)
                         }
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
-                          isEnabled ? 'bg-indigo-600' : 'bg-slate-300'
-                        } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                          } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
-                            isEnabled ? 'translate-x-4' : 'translate-x-0.5'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
                         />
                       </button>
                     </div>
@@ -215,14 +219,12 @@ const PermissionsSection: React.FC<PermissionsSectionProps> = ({
                   type="button"
                   disabled={disabled}
                   onClick={() => handleGroupToggle(group, !allEnabled)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
-                    allEnabled ? 'bg-indigo-600' : 'bg-slate-300'
-                  } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${allEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                    } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
-                      allEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${allEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>
@@ -245,14 +247,12 @@ const PermissionsSection: React.FC<PermissionsSectionProps> = ({
                         onClick={() =>
                           !disabled && onPermissionChange(item.permissionId as number, !isEnabled)
                         }
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-1 ${
-                          isEnabled ? 'bg-indigo-600' : 'bg-slate-300'
-                        } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${isEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                          } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
-                            isEnabled ? 'translate-x-4' : 'translate-x-0.5'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${isEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
                         />
                       </button>
                     </div>
@@ -297,7 +297,7 @@ const UserNew = () => {
     const checkAccess = async () => {
       try {
         const permissionData = await fetchPermissionData();
-        setUserRole(permissionData.role);
+        setUserRole(permissionData?.role || 'user');
       } catch (err) {
         console.error('Error fetching permission data:', err);
         setUserRole('user'); // Default to user on error
@@ -305,7 +305,7 @@ const UserNew = () => {
         setCheckingAccess(false);
       }
     };
-    
+
     checkAccess();
   }, []);
 
@@ -364,9 +364,24 @@ const UserNew = () => {
   const handlePermissionChange = (permissionId: number, isEnabled: boolean) => {
     if (formDisabled) return;
     setFormData((prev) => {
-      const newPermissions = isEnabled
+      let newPermissions = isEnabled
         ? [...prev.permissions, permissionId]
         : prev.permissions.filter((p) => p !== permissionId);
+
+      // Request 1: Automatically select Room View if Key Handling or Room Leader Assign is selected
+      if (isEnabled && (permissionId === PAGE_PERMISSIONS.KEY_HANDING || permissionId === PAGE_PERMISSIONS.ROOM_LEADER_ASSIGN)) {
+        if (!newPermissions.includes(PAGE_PERMISSIONS.VIEW_ROOM)) {
+          newPermissions.push(PAGE_PERMISSIONS.VIEW_ROOM);
+        }
+      }
+
+      // Request 2: If Room View is turned OFF, automatically turn OFF Key Handling and Room Leader Assign
+      if (!isEnabled && permissionId === PAGE_PERMISSIONS.VIEW_ROOM) {
+        newPermissions = newPermissions.filter(
+          (p) => p !== PAGE_PERMISSIONS.KEY_HANDING && p !== PAGE_PERMISSIONS.ROOM_LEADER_ASSIGN
+        );
+      }
+
       return { ...prev, permissions: newPermissions };
     });
   };
@@ -451,32 +466,17 @@ const UserNew = () => {
     setFormDisabled(false);
   };
 
-  // Show loading skeleton while checking access or loading
   if (checkingAccess || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate('/admin/users')}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-              >
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Register New User
-              </h1>
-            </div>
-            <Link
-              to="/admin/users"
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              View All Users
-            </Link>
-          </div>
-        </div>
+        <StickyHeader title="New User" onBack={() => navigate('/admin/users')}>
+          <Link
+            to="/admin/users"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            View All Users
+          </Link>
+        </StickyHeader>
         <UserNewSkeleton />
       </div>
     );
@@ -484,36 +484,21 @@ const UserNew = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      {/* Sticky Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => navigate('/admin/users')}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
-            >
-              <FiArrowLeft /> Back
-            </button>
-            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-              Register New User
-            </h1>
-          </div>
-          <Link
-            to="/admin/users"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-          >
-            View All Users
-          </Link>
-        </div>
-      </div>
+      <StickyHeader title="User Management" onBack={() => navigate('/admin/users')}>
+        <Link
+          to="/admin/users"
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+        >
+          View All Users
+        </Link>
+      </StickyHeader>
 
-      <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6">
+      <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8 space-y-6">
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6 flex-wrap sm:flex-nowrap">
             <div>
               <h2 className="text-xl font-bold text-slate-800">
-                Register New User
+                User Management
               </h2>
               <p className="text-slate-600 text-sm mt-1">
                 {formDisabled
@@ -524,11 +509,10 @@ const UserNew = () => {
 
             {(message || error) && (
               <div
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 border min-w-[220px] ${
-                  message.includes('successfully')
-                    ? 'bg-green-50 border-green-200 text-green-800'
-                    : 'bg-red-50 border-red-200 text-red-800'
-                }`}
+                className={`px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 border min-w-[220px] ${message.includes('successfully')
+                  ? 'bg-green-50 border-green-200 text-green-800'
+                  : 'bg-red-50 border-red-200 text-red-800'
+                  }`}
               >
                 {message.includes('successfully') && (
                   <FiCheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -539,7 +523,7 @@ const UserNew = () => {
           </div>
 
           <div className="p-6 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor="name">
                   Full Name <span className="text-red-500">*</span>
@@ -553,9 +537,8 @@ const UserNew = () => {
                   disabled={formDisabled}
                   required
                   autoComplete="off"
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
-                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                  }`}
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                    }`}
                   placeholder="Enter full name"
                 />
               </div>
@@ -573,9 +556,8 @@ const UserNew = () => {
                   disabled={formDisabled}
                   required
                   autoComplete="off"
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
-                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                  }`}
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                    }`}
                   placeholder="user@example.com"
                 />
               </div>
@@ -590,9 +572,8 @@ const UserNew = () => {
                   value={formData.role}
                   onChange={handleSelectChange}
                   disabled={formDisabled}
-                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
-                    formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                  }`}
+                  className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                    }`}
                 >
                   <option value="user">User</option>
                   <option value="co-admin">Co-Admin</option>
@@ -618,9 +599,8 @@ const UserNew = () => {
                     disabled={formDisabled}
                     required
                     autoComplete="off"
-                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all pr-10 ${
-                      formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                    }`}
+                    className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all pr-10 ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                      }`}
                     placeholder="Enter phone number"
                   />
                   {formData.contactNumber.length >= 10 && !formDisabled && (
@@ -652,9 +632,8 @@ const UserNew = () => {
                       required
                       minLength={6}
                       autoComplete="new-password"
-                      className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
-                        formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                      }`}
+                      className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                        }`}
                       placeholder="At least 6 characters"
                     />
                   </div>
@@ -672,9 +651,8 @@ const UserNew = () => {
                       disabled={formDisabled}
                       required
                       autoComplete="new-password"
-                      className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all ${
-                        formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                      }`}
+                      className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                        }`}
                       placeholder="Re-enter password"
                     />
                   </div>
@@ -720,9 +698,8 @@ const UserNew = () => {
                 onChange={handleTextChange}
                 disabled={formDisabled}
                 rows={3}
-                className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all resize-y ${
-                  formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
-                }`}
+                className={`w-full px-4 py-2.5 border border-slate-200 rounded-lg text-slate-900 focus:outline-none text-sm transition-all resize-y ${formDisabled ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'
+                  }`}
                 placeholder="Any additional notes about this user (e.g. Manager, Developer, etc.)"
               />
             </div>
@@ -744,7 +721,7 @@ const UserNew = () => {
             </div>
           </div>
 
-          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-end gap-3">
             {showSuccessActions ? (
               <>
                 <button
@@ -754,7 +731,7 @@ const UserNew = () => {
                       navigate(`/admin/users/${createdUserId}`);
                     }
                   }}
-                  className="px-6 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                  className="w-full sm:w-auto px-6 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
                   disabled={!createdUserId}
                 >
                   User Profile
@@ -762,7 +739,7 @@ const UserNew = () => {
                 <button
                   type="button"
                   onClick={handleRegisterNext}
-                  className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all"
                 >
                   Register Next
                 </button>
@@ -771,7 +748,7 @@ const UserNew = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || formDisabled}
-                className="px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="w-full sm:w-auto px-6 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-sm font-medium shadow-sm hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>

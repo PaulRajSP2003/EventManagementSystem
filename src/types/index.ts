@@ -124,6 +124,7 @@ export interface User {
   isActive: boolean;
   permissions?: number[]; 
   remarks?: string;
+  lastLogin?: string;
 }
 
 export interface LoginCredentials {

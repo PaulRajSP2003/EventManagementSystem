@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { fetchRoomData } from '../../api/RoomData';
-import { Link } from 'react-router-dom';
+// Link removed as it was unused
 import EventStayConfigTab from './EventStayConfigTab';
 import {
     FiEdit,
@@ -145,7 +145,7 @@ const FloorTabCompound: React.FC<FloorTabCompoundProps> = ({
 
     // When child acknowledges reset (optional – for extra safety)
     const handleResetAcknowledged = () => {
-        
+
     };
 
     const showAlert = (
@@ -295,7 +295,7 @@ const FloorTabCompound: React.FC<FloorTabCompoundProps> = ({
         };
 
         try {
-            const response = await fetch("https://localhost:7135/api/admin/roomChanges", {
+            const response = await fetch("/api/admin/roomChanges", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -317,8 +317,8 @@ const FloorTabCompound: React.FC<FloorTabCompoundProps> = ({
                 throw new Error(`Server error: ${response.status}`);
             }
 
-            const result = await response.json();
-            
+            await response.json();
+
 
             // Show success with saved icon
             showAlert("Configuration saved successfully!", "success");
@@ -1267,12 +1267,9 @@ const FloorTabCompound: React.FC<FloorTabCompoundProps> = ({
                                                                                         {room.roomName.charAt(0)}
                                                                                     </div>
                                                                                     <div>
-                                                                                        <Link
-                                                                                            to={`/user/room/${activeSubTab}/${room.roomName}/`}
-                                                                                            className="text-sm font-bold text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-                                                                                        >
+                                                                                        <span className="text-sm font-bold text-gray-900 dark:text-white">
                                                                                             {room.roomName}
-                                                                                        </Link>
+                                                                                        </span>
                                                                                     </div>
                                                                                 </div>
                                                                                 {namingOption === 'manual' && (

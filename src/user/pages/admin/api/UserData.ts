@@ -1,6 +1,7 @@
 import type { User } from '../../../../types';
 
-const BASE_URL = 'https://localhost:7135/api/admin';
+import { API_BASE } from '../../../../config/api';
+const BASE_URL = `${API_BASE}/admin`;
 
 // API Response types
 interface ApiSaveResponse {
@@ -23,6 +24,7 @@ interface ApiUserResponse {
   permissionPages: string;
   createdAt: string;
   updatedAt: string;
+  lastLogin?: string;
 }
 
 interface ApiUsersListResponse {
@@ -77,11 +79,12 @@ export const getAllUsers = async (): Promise<User[]> => {
         assignRole: apiUser.assignRole,
         isActive: apiUser.isActive,
         remarks: apiUser.remark,
+        lastLogin: apiUser.lastLogin,
         permissions,
       };
     });
 
-    
+
     return users;
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -129,10 +132,11 @@ export const getUserById = async (id: number): Promise<User> => {
       assignRole: apiUser.assignRole,
       isActive: apiUser.isActive,
       remarks: apiUser.remark,
+      lastLogin: apiUser.lastLogin,
       permissions,
     };
 
-    
+
     return user;
   } catch (error) {
     console.error(`Error fetching user with id ${id}:`, error);
@@ -192,10 +196,11 @@ export const createUser = async (userData: {
       assignRole: userData.assignRole,
       isActive: userData.isActive,
       remarks: userData.remarks,
+      lastLogin: '',
       permissions: userData.permissions,
     };
 
-    
+
     return newUser;
   } catch (error) {
     console.error('Error creating user:', error);
@@ -258,10 +263,11 @@ export const updateUser = async (
       assignRole: userData.assignRole,
       isActive: userData.isActive,
       remarks: userData.remarks,
+      lastLogin: '',
       permissions: userData.permissions,
     };
 
-    
+
     return updatedUser;
   } catch (error) {
     console.error(`Error updating user with id ${id}:`, error);

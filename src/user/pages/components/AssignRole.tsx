@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { API_BASE } from '../../../config/api';
 
 // Define types inline since we can't import
 type AssignRole = {
@@ -24,7 +25,7 @@ const AssignRole: React.FC<AssignRoleProps> = ({ onRoleSelect, initialRoleId }) 
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('https://localhost:7135/api/admin/roles', {
+        const res = await fetch(`${API_BASE}/admin/roles`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include'

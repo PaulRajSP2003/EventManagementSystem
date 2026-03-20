@@ -1,4 +1,5 @@
 import type { Medical, MedicalTreatment } from '../../../types';
+import { API_BASE } from '../../../config/api';
 
 interface ApiResponse<T> {
   success: boolean;
@@ -9,7 +10,7 @@ interface ApiResponse<T> {
 export const medicalAPI = {
   saveMedicalReport: async (report: Medical): Promise<{ reportId: number }> => {
     try {
-      const response = await fetch('https://localhost:7135/api/medical/save', {
+      const response = await fetch(`${API_BASE}/medical/save`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,7 +55,7 @@ export const medicalAPI = {
 
   listMedicalReports: async (): Promise<Medical[]> => {
     try {
-      const response = await fetch('https://localhost:7135/api/medical/list', {
+      const response = await fetch(`${API_BASE}/medical/list`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +97,7 @@ export const medicalAPI = {
 
   getMedicalReportById: async (reportId: number): Promise<Medical> => {
     try {
-      const response = await fetch(`https://localhost:7135/api/medical/${reportId}`, {
+      const response = await fetch(`${API_BASE}/medical/${reportId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +141,7 @@ saveMedicalTreatment: async (
   treatment: Omit<MedicalTreatment, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>
 ): Promise<void> => {
   try {
-    const response = await fetch('https://localhost:7135/api/medical/treatment', {
+    const response = await fetch(`${API_BASE}/medical/treatment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -176,7 +177,7 @@ updateMedicalTreatment: async (treatment: MedicalTreatment): Promise<void> => {
   try {
     const { id, treaterName, description } = treatment;
 
-    const response = await fetch(`https://localhost:7135/api/medical/treatment/${id}`, {
+    const response = await fetch(`${API_BASE}/medical/treatment/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -210,7 +211,7 @@ updateMedicalTreatment: async (treatment: MedicalTreatment): Promise<void> => {
 
 listTreatmentsByReportId: async (reportId: number): Promise<MedicalTreatment[]> => {
     try {
-      const response = await fetch(`https://localhost:7135/api/medical/treatment/list/${reportId}`, {
+      const response = await fetch(`${API_BASE}/medical/treatment/list/${reportId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -1,4 +1,5 @@
 import type { Student } from '../../../types';
+import { API_BASE } from '../../../config/api';
 
 interface ApiStudent {
   id: number;
@@ -132,8 +133,7 @@ function normalizeRegisteredMode(raw: any): 'online' | 'offline' | undefined {
 export const studentAPI = {
   getStudents: async (): Promise<Student[]> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const STUDENTS_API_URL = `${API_BASE.replace(/\/$/, '')}/user/students`;
+      const STUDENTS_API_URL = `${API_BASE}/user/students`;
 
       const response = await fetch(STUDENTS_API_URL, {
         method: 'GET',
@@ -148,7 +148,7 @@ export const studentAPI = {
           throw new Error('Unauthorized');
         }
         if (response.status === 403) {
-          throw new Error('Forbidden'); 
+          throw new Error('Forbidden');
         }
         // Or a generic error
         throw new Error(`HTTP error ${response.status}`);
@@ -204,8 +204,7 @@ export const studentAPI = {
 
   createStudent: async (studentData: Partial<Student>): Promise<any> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const CREATE_STUDENT_URL = `${API_BASE.replace(/\/$/, '')}/user/student`;
+      const CREATE_STUDENT_URL = `${API_BASE}/user/student`;
 
       const payload: CreateStudentPayload = {
         name: studentData.name || '',
@@ -236,7 +235,7 @@ export const studentAPI = {
       });
 
       const text = await response.text();
-      
+
 
       if (response.status === 401) {
         throw new Error('Unauthorized: Please login to create a student');
@@ -279,8 +278,7 @@ export const studentAPI = {
 
   getStudent: async (studentId: number): Promise<Student> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const STUDENT_API_URL = `${API_BASE.replace(/\/$/, '')}/user/student/${studentId}`;
+      const STUDENT_API_URL = `${API_BASE}/user/student/${studentId}`;
 
       const response = await fetch(STUDENT_API_URL, {
         method: 'GET',
@@ -354,8 +352,7 @@ export const studentAPI = {
 
   getStudentDetail: async (studentId: number): Promise<Student> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const STUDENT_DETAIL_URL = `${API_BASE.replace(/\/$/, '')}/user/student/detail/${studentId}`;
+      const STUDENT_DETAIL_URL = `${API_BASE}/user/student/detail/${studentId}`;
 
       const response = await fetch(STUDENT_DETAIL_URL, {
         method: 'GET',
@@ -366,9 +363,9 @@ export const studentAPI = {
       });
 
       // Log response for debugging
-      
+
       const text = await response.text();
-      
+
 
       if (response.status === 401) {
         throw new Error('Unauthorized: Please login to access student details');
@@ -452,8 +449,7 @@ export const studentAPI = {
 
   getHistory: async (studentId: number) => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const HISTORY_URL = `${API_BASE.replace(/\/$/, '')}/user/student/history/${studentId}`;
+      const HISTORY_URL = `${API_BASE}/user/student/history/${studentId}`;
 
       const response = await fetch(HISTORY_URL, {
         method: 'GET',
@@ -464,7 +460,7 @@ export const studentAPI = {
       });
 
       // Log response for debugging
-      
+
 
       // Handle 403 Forbidden specifically
       if (response.status === 403) {
@@ -476,7 +472,7 @@ export const studentAPI = {
       }
 
       const text = await response.text();
-      
+
 
       if (!response.ok) {
         let errorMessage = 'Failed to fetch student history';
@@ -511,8 +507,7 @@ export const studentAPI = {
 
   updateStudent: async (studentId: number, studentData: Partial<Student>): Promise<any> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const STUDENT_API_URL = `${API_BASE.replace(/\/$/, '')}/user/student/${studentId}`;
+      const STUDENT_API_URL = `${API_BASE}/user/student/${studentId}`;
 
       // Map the student data to API format
       const payload: UpdateStudentPayload = {
@@ -589,8 +584,7 @@ export const studentAPI = {
     staying_leader: number
   ): Promise<any> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
-      const CHANGE_STATUS_URL = `${API_BASE.replace(/\/$/, '')}/user/change/student/${studentId}`;
+      const CHANGE_STATUS_URL = `${API_BASE}/user/change/student/${studentId}`;
 
       const payload = {
         status,
@@ -609,9 +603,9 @@ export const studentAPI = {
       });
 
       // Log response for debugging
-      
+
       const text = await response.text();
-      
+
 
       // Handle specific HTTP status codes
       if (response.status === 401) {
@@ -655,10 +649,7 @@ export const studentAPI = {
 
   downloadCSV: async (): Promise<void> => {
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'https://localhost:7135';
-
-      const baseUrl = API_BASE.replace(/\/$/, '');
-      const downloadUrl = `${baseUrl}/api/user/students/download`;
+      const downloadUrl = `${API_BASE}/user/students/download`;
 
       const headers: HeadersInit = {
         'Accept': 'text/csv',

@@ -44,3 +44,14 @@ code {
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
 }
+
+/* Hide ALL scrollbars on mobile globally */
+@media (max-width: 768px) {
+  * {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;     /* Firefox */
+  }
+  *::-webkit-scrollbar {
+    display: none;             /* Chrome, Safari, Opera */
+  }
+}

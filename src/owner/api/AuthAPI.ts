@@ -10,12 +10,14 @@ interface LoginCredentials {
   password: string;
 }
 
+import { API_BASE } from '../../config/api';
+
 export const authAPI = {
   login: async (credentials: LoginCredentials): Promise<LoginResponse> => {
     try {
-      const response = await fetch('https://localhost:7135/api/owner/login', {
+      const response = await fetch(`${API_BASE}/owner/login`, {
         method: 'POST',
-        credentials: 'include', // 👈 THIS IS CRUCIAL - allows cookies to be set/received
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -43,7 +45,7 @@ export const authAPI = {
         throw new Error('Invalid response from server');
       }
 
-      console.log('Backend response:', apiResponse);
+
 
       let email: string = '';
       let message: string = 'Login successful';
@@ -64,7 +66,7 @@ export const authAPI = {
       if (!email) {
         throw new Error('Invalid response: missing email');
       }
-      
+
       // Store only email in localStorage, token is in HTTP-only cookie
       localStorage.setItem('ownerEmail', email);
       if (role) {
@@ -88,10 +90,10 @@ export const authAPI = {
       throw error instanceof Error ? error : new Error('Login failed');
     }
   },
-  
+
   logout: async (): Promise<void> => {
     try {
-      await fetch('https://localhost:7135/api/Auth/logout', {
+      await fetch(`${API_BASE}/owner/logout`, {
         method: 'POST',
         credentials: 'include', // Include cookies for logout
         headers: {
@@ -108,9 +110,34 @@ export const authAPI = {
     }
   },
 
+  registerOwner: async (credentials: LoginCredentials): Promise<{ message: string }> => {
+    const response = await fetch(`${API_BASE}/owner/register`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+
+    const text = await response.text();
+    let data: { message?: string; error?: string } = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+
+    if (!response.ok) {
+      throw new Error(data.message || data.error || 'Registration failed');
+    }
+
+    return { message: data.message || 'Owner registered successfully' };
+  },
+
   validateToken: async (): Promise<boolean> => {
     try {
-      const response = await fetch('https://localhost:7135/api/owner/validate', {
+      const response = await fetch(`${API_BASE}/owner/validate`, {
         method: 'GET',
         credentials: 'include',
         headers: {

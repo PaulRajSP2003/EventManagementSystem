@@ -1,4 +1,5 @@
-const BASE_URL = 'https://localhost:7135/api/admin';
+import { API_BASE } from '../../../../config/api';
+const BASE_URL = `${API_BASE}/admin`;
 
 export interface SectionGroup {
   groupName: string;
@@ -194,7 +195,7 @@ export const saveFloorSettings = async (
       throw new Error(`Server error: ${response.status}`);
     }
 
-    const result = await response.json();
+    await response.json();
     
     return true;
 

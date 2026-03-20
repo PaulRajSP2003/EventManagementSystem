@@ -3,13 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { leaderAPI } from '../api/LeaderData';
 import {
-    FiArrowLeft, FiActivity, FiEdit, FiPhone, FiSearch, FiFilter, FiHome, FiUsers, FiKey, FiClock,
+    FiActivity, FiEdit, FiPhone, FiSearch, FiFilter, FiHome, FiUsers, FiKey, FiClock,
     FiUser
 } from 'react-icons/fi';
 import { BsPersonCheck, BsPeople, BsPersonBadge } from 'react-icons/bs';
-import AccessAlert from '../components/AccessAlert';
 import { isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
-import EmptyState from '../components/EmptyState';
+import { StickyHeader, AccessAlert, EmptyState } from '../components';
 
 // Skeleton component for loading state
 const SkeletonBlock = ({ className = "" }: { className?: string }) => (
@@ -262,7 +261,7 @@ const LeaderHistory: React.FC = () => {
                 setPermissionError(false);
                 const data = await fetchPermissionData();
                 setPermissionData(data);
-                
+
                 // Check if user is admin or co-admin
                 const isAdmin = isAdminOrCoAdmin(data);
                 if (!isAdmin) {
@@ -274,7 +273,7 @@ const LeaderHistory: React.FC = () => {
                 setPermissionData(null);
                 setPermissionError(true);
                 setAccessDenied(true);
-                
+
                 // Check for 403 Forbidden error
                 if (error.message === 'Forbidden' || error.message?.includes('403')) {
                     setErrorMessage("Access Forbidden: You don't have permission to access this resource");
@@ -316,18 +315,18 @@ const LeaderHistory: React.FC = () => {
                 setLeaderData(data);
             } catch (error) {
                 console.error('Failed to load leader history:', error);
-                
+
                 // Check if it's a 403 Forbidden error
                 const errorMsg = error instanceof Error ? error.message : 'Failed to load leader history';
-                
+
                 // Handle 403 Forbidden specifically
-                if (errorMsg.toLowerCase().includes('forbidden') || 
+                if (errorMsg.toLowerCase().includes('forbidden') ||
                     errorMsg.includes('403') ||
                     errorMsg.toLowerCase().includes('permission')) {
                     setAccessDenied(true);
                     setErrorMessage("Access Forbidden: You don't have permission to view this leader's history");
-                } else if (errorMsg.toLowerCase().includes('unauthorized') || 
-                           errorMsg.includes('401')) {
+                } else if (errorMsg.toLowerCase().includes('unauthorized') ||
+                    errorMsg.includes('401')) {
                     setAccessDenied(true);
                     setErrorMessage("Unauthorized: Please log in to access this page");
                 } else {
@@ -393,26 +392,10 @@ const LeaderHistory: React.FC = () => {
         }
     };
 
-    // Show loading while permissions are loading
     if (permissionLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-                <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                    <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                            >
-                                <FiArrowLeft /> Back
-                            </button>
-                            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                                Leader History
-                            </h1>
-                        </div>
-                    </div>
-                </div>
+                <StickyHeader title="Leader History" onBack={() => navigate(-1)} />
                 <LeaderHistorySkeleton />
             </div>
         );
@@ -430,30 +413,16 @@ const LeaderHistory: React.FC = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-                <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                    <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                            >
-                                <FiArrowLeft /> Back
-                            </button>
-                            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                                Leader History
-                            </h1>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button disabled className="flex items-center gap-2 px-4 py-2 border border-pink-200 bg-pink-50 text-pink-700 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed">
-                                <FiActivity /> Replacement
-                            </button>
-                            <button disabled className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
-                                <FiEdit /> Edit Profile
-                            </button>
-                        </div>
+                <StickyHeader title="Leader History" onBack={() => navigate(-1)}>
+                    <div className="flex items-center gap-3">
+                        <button disabled className="flex items-center gap-2 px-4 py-2 border border-pink-200 bg-pink-50 text-pink-700 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed">
+                            <FiActivity /> Replacement
+                        </button>
+                        <button disabled className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
+                            <FiEdit /> Edit Profile
+                        </button>
                     </div>
-                </div>
+                </StickyHeader>
                 <LeaderHistorySkeleton />
             </div>
         );
@@ -462,22 +431,7 @@ const LeaderHistory: React.FC = () => {
     if (error || !leaderData) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-                <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                    <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                            >
-                                <FiArrowLeft /> Back
-                            </button>
-                            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                                Leader History
-                            </h1>
-                        </div>
-                    </div>
-                </div>
+                <StickyHeader title="Leader History" onBack={() => navigate(-1)} />
                 <div className="max-w-6xl mx-auto py-16 px-4">
                     <EmptyState
                         title="Error Loading Data"
@@ -495,80 +449,63 @@ const LeaderHistory: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-            {/* Header */}
-            <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                    <div className="flex items-center gap-6">
+            <StickyHeader title="Leader History" onBack={() => navigate(-1)}>
+                <div className="flex items-center gap-3">
+                    <div className="relative group">
                         <button
-                            onClick={() => navigate(-1)}
-                            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
+                            onClick={() => {
+                                if (isPresent || isRegistered) {
+                                    navigate(`/user/leader/replacement/${leaderData.id}`);
+                                } else {
+                                    handleDisabledReplacementClick();
+                                }
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${isPresent
+                                ? 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100'
+                                : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                                }`}
                         >
-                            <FiArrowLeft /> Back
+                            <FiActivity className="w-4 h-4" /> Replacement
                         </button>
-                        <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                        <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                            Leader History
-                        </h1>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <div className="relative group">
-                            <button
-                                onClick={() => {
-                                    if (isPresent || isRegistered) {
-                                        navigate(`/user/leader/replacement/${leaderData.id}`);
-                                    } else {
-                                        handleDisabledReplacementClick();
-                                    }
-                                }}
-                                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${
-                                    isPresent
-                                        ? 'border-pink-200 bg-pink-50 text-pink-700 hover:bg-pink-100'
-                                        : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-                                }`}
-                            >
-                                <FiActivity /> Replacement
-                            </button>
-                            {!isPresent && (
-                                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                                    Only leaders with status "Present" can make replacements
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="relative group">
-                            <button
-                                onClick={() => {
-                                    if (isRegistered) {
-                                        navigate(`/user/leader/edit/${leaderData.id}`);
-                                    } else {
-                                        handleDisabledEditClick();
-                                    }
-                                }}
-                                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${
-                                    isRegistered
-                                        ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                                        : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-                                }`}
-                            >
-                                <FiEdit />
-                                Edit Profile
-                            </button>
-                            {!isRegistered && (
-                                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                                    Only leaders with status "Registered" can be edited.
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Alert for disabled actions */}
-                        {showAlert && !isPresent && (
-                            <div className="absolute top-full right-0 mt-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded shadow-lg animate-pulse">
-                                This action is only available for leaders with status "Present"
+                        {!isPresent && (
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+                                Only leaders with status "Present" can make replacements
                             </div>
                         )}
                     </div>
+
+                    <div className="relative group">
+                        <button
+                            onClick={() => {
+                                if (isRegistered) {
+                                    navigate(`/user/leader/edit/${leaderData.id}`);
+                                } else {
+                                    handleDisabledEditClick();
+                                }
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${isRegistered
+                                ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                                : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                                }`}
+                        >
+                            <FiEdit />
+                            Edit Profile
+                        </button>
+                        {!isRegistered && (
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+                                Only leaders with status "Registered" can be edited.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Alert for disabled actions */}
+                    {showAlert && !isPresent && (
+                        <div className="absolute top-full right-0 mt-2 bg-red-50 border border-red-200 text-red-700 text-xs p-2 rounded shadow-lg animate-pulse">
+                            This action is only available for leaders with status "Present"
+                        </div>
+                    )}
                 </div>
-            </div>
+            </StickyHeader>
 
             {/* Main Content */}
             <div className="max-w-6xl mx-auto px-4 py-6">
@@ -584,12 +521,11 @@ const LeaderHistory: React.FC = () => {
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-800 capitalize">{leaderData.name}</h2>
                                 <div className="flex items-center gap-4 mt-1">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                        leaderData.status?.toLowerCase() === 'present' ? 'bg-green-100 text-green-700' :
-                                        leaderData.status?.toLowerCase() === 'registered' ? 'bg-orange-100 text-orange-700' :
-                                        leaderData.status?.toLowerCase() === 'absent' ? 'bg-red-100 text-red-700' :
-                                        'bg-slate-100 text-slate-700'
-                                    }`}>
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${leaderData.status?.toLowerCase() === 'present' ? 'bg-green-100 text-green-700' :
+                                            leaderData.status?.toLowerCase() === 'registered' ? 'bg-orange-100 text-orange-700' :
+                                                leaderData.status?.toLowerCase() === 'absent' ? 'bg-red-100 text-red-700' :
+                                                    'bg-slate-100 text-slate-700'
+                                        }`}>
                                         {leaderData.status ? leaderData.status.charAt(0).toUpperCase() + leaderData.status.slice(1) : ""}
                                     </span>
                                 </div>
@@ -675,11 +611,10 @@ const LeaderHistory: React.FC = () => {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all duration-200 whitespace-nowrap ${
-                                        activeTab === tab.id
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
                                             ? 'bg-pink-50 text-pink-700 border-b-2 border-pink-500'
                                             : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                    }`}
+                                        }`}
                                 >
                                     <Icon className="w-4 h-4" />
                                     {tab.label}
@@ -749,11 +684,10 @@ const LeaderHistory: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                        item.isActive
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                             ? 'bg-green-100 text-green-700'
                                                             : 'bg-slate-100 text-slate-600'
-                                                    }`}>
+                                                        }`}>
                                                         {item.isActive ? 'Active' : 'Inactive'}
                                                     </span>
                                                 </td>
@@ -819,11 +753,10 @@ const LeaderHistory: React.FC = () => {
                                                                 <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
                                                             </td>
                                                             <td className="px-6 py-4">
-                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                                    item.isActive
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                                         ? 'bg-green-100 text-green-700'
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}>
+                                                                    }`}>
                                                                     {item.isActive ? 'Active' : 'Inactive'}
                                                                 </span>
                                                             </td>
@@ -868,11 +801,10 @@ const LeaderHistory: React.FC = () => {
                                                                 <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
                                                             </td>
                                                             <td className="px-6 py-4">
-                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                                    item.isActive
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                                         ? 'bg-green-100 text-green-700'
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}>
+                                                                    }`}>
                                                                     {item.isActive ? 'Active' : 'Inactive'}
                                                                 </span>
                                                             </td>
@@ -977,9 +909,8 @@ const LeaderHistory: React.FC = () => {
                                                                 <div className="text-xs text-slate-500">{formatTime(item.assignedAt)}</div>
                                                             </td>
                                                             <td className="px-6 py-4">
-                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
-                                                                    item.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
-                                                                }`}>
+                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${item.isActive ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
+                                                                    }`}>
                                                                     {item.isActive ? "Active" : "Inactive"}
                                                                 </span>
                                                             </td>
@@ -1133,11 +1064,10 @@ const LeaderHistory: React.FC = () => {
                                                                 <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
                                                             </td>
                                                             <td className="px-6 py-4">
-                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                                    item.isActive
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                                         ? 'bg-green-100 text-green-700'
                                                                         : 'bg-slate-100 text-slate-600'
-                                                                }`}>
+                                                                    }`}>
                                                                     {item.isActive ? 'Active' : 'Inactive'}
                                                                 </span>
                                                             </td>
@@ -1203,11 +1133,10 @@ const LeaderHistory: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                        item.isActive
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                             ? 'bg-green-100 text-green-700'
                                                             : 'bg-slate-100 text-slate-600'
-                                                    }`}>
+                                                        }`}>
                                                         {item.isActive ? 'Active' : 'Inactive'}
                                                     </span>
                                                 </td>

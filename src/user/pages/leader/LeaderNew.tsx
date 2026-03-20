@@ -1,19 +1,18 @@
 // src/user/pages/leader/LeaderNew.tsx
 import { useState, useEffect, useRef } from 'react';
 import {
-  FiArrowLeft,
   FiCheckCircle,
   FiMapPin,
-  FiUser,
   FiSave,
   FiX,
+  FiUser
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Leader } from '../../../types';
 import { leaderAPI } from '../api/LeaderData';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
-import AccessAlert from '../components/AccessAlert';
+import { StickyHeader, AccessAlert } from '../components';
 // Import the PlaceList API
 import PlaceAPI, { type PhotonFeature } from '../api/PlaceList';
 
@@ -39,8 +38,8 @@ type LeaderFormData = Pick<
 };
 
 const LeaderNewSkeleton = () => (
-  <div className="max-w-5xl mx-auto px-4 mt-8">
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-pulse">
+  <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse">
       <div className="p-6 border-b border-slate-100">
         <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
         <div className="h-4 w-64 bg-gray-200 rounded"></div>
@@ -81,8 +80,8 @@ const LeaderNew = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessActions, setShowSuccessActions] = useState(false);
-  const [registeredId, setRegisteredId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
+  const [newId, setNewId] = useState<number | null>(null);
 
   const [showPlaceSuggestions, setShowPlaceSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -130,7 +129,7 @@ const LeaderNew = () => {
         setPermissionData(null);
         setPermissionError(true);
         setAccessDenied(true);
-        
+
         // Check for 403 Forbidden error
         if (error.message === 'Forbidden' || error.message?.includes('403')) {
           setErrorMessage("Access Forbidden: You don't have permission to access this resource");
@@ -355,22 +354,36 @@ const LeaderNew = () => {
       registered_mode: 'offline',
     };
 
-    
-    
+
+
 
     try {
       // Call the real API
-      const leaderId = await leaderAPI.create(payload);
-      setRegisteredId(leaderId);
+      const result = await leaderAPI.create(payload) as any;
+      
+      const createdLeaderId = 
+        typeof result === 'number' ? result : (
+        result?.leader?.leaderId || 
+        result?.data?.leader?.leaderId || 
+        result?.data?.leaderId || 
+        result?.leaderId || 
+        result?.id || 
+        null
+        );
+
+      if (createdLeaderId) {
+        setNewId(Number(createdLeaderId));
+      }
+
       setMessage('Leader has been registered successfully.');
       setShowSuccessActions(true);
     } catch (err) {
       console.error('Error creating leader:', err);
-      
+
       // Check if it's a permission error
       const errorMsg = err instanceof Error ? err.message : 'Error registering leader';
-      if (errorMsg.toLowerCase().includes('forbidden') || 
-          errorMsg.toLowerCase().includes('unauthorized')) {
+      if (errorMsg.toLowerCase().includes('forbidden') ||
+        errorMsg.toLowerCase().includes('unauthorized')) {
         setAccessDenied(true);
         setErrorMessage(errorMsg);
       } else {
@@ -383,39 +396,12 @@ const LeaderNew = () => {
 
   const isFormDisabled = showSuccessActions || isSubmitting || !hasAccess();
 
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-      <div className="max-w-5xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate(-1)}
-            disabled={!hasAccess()}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiArrowLeft /> Back
-          </button>
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Register New Leader</h1>
-        </div>
-        {/* Check if user has permission to view leader list */}
-        {canViewLeaderList() && (
-          <button
-            onClick={() => navigate('/user/leader')}
-            disabled={!hasAccess()}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Leader List
-          </button>
-        )}
-      </div>
-    </div>
-  );
 
   // Show loading while permissions are loading
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Register New Leader" onBack={() => navigate(-1)} />
         <LeaderNewSkeleton />
       </div>
     );
@@ -433,7 +419,7 @@ const LeaderNew = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Register New Leader" onBack={() => navigate(-1)} />
         <LeaderNewSkeleton />
       </div>
     );
@@ -441,10 +427,20 @@ const LeaderNew = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Register New Leader" onBack={() => navigate(-1)}>
+        {canViewLeaderList() && (
+          <button
+            onClick={() => navigate('/user/leader')}
+            disabled={!hasAccess()}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Leader List
+          </button>
+        )}
+      </StickyHeader>
 
-      <div className="max-w-5xl mx-auto px-4 mt-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+      <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden relative">
 
           {/* Success Overlay */}
           <AnimatePresence>
@@ -465,12 +461,14 @@ const LeaderNew = () => {
                 <p className="text-slate-600 mb-8 max-w-sm">{message}</p>
 
                 <div className="flex flex-wrap justify-center gap-4">
-                  <button
-                    onClick={() => navigate(`/user/leader/${registeredId}`)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all shadow-md"
-                  >
-                    <FiUser /> View Profile
-                  </button>
+                  {newId && (
+                    <button
+                      onClick={() => navigate(`/user/leader/${newId}`)}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all"
+                    >
+                      <FiUser /> View Profile
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowSuccessActions(false);
@@ -490,7 +488,6 @@ const LeaderNew = () => {
                         latitude: undefined,
                         longitude: undefined,
                       });
-                      setRegisteredId(null);
                       setMessage('');
                       setContactNumberError(false);
                       setPlaceSuggestions([]);
@@ -505,17 +502,15 @@ const LeaderNew = () => {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit}>
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6">
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">New Leader Registration</h2>
-                <p className="text-slate-600 text-sm mt-1">Enter the leader's information below.</p>
+            <div className="p-4 sm:p-5 border-b border-slate-100">
+              <div className="flex items-center justify-between mb-0.5">
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">New Leader Registration</h2>
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">New Record</div>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-medium text-slate-500">New Record</div>
-              </div>
+              <p className="text-slate-500 text-xs">Enter the leader's information below.</p>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-3 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name */}
                 <div>
@@ -528,7 +523,7 @@ const LeaderNew = () => {
                     required
                     disabled={isFormDisabled}
                     autoComplete="off"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
                     placeholder="Enter full name"
                   />
                 </div>
@@ -543,7 +538,7 @@ const LeaderNew = () => {
                     required
                     disabled={isFormDisabled}
                     autoComplete="off"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -552,7 +547,7 @@ const LeaderNew = () => {
 
                 {/* Place with Photon API Search */}
                 <div className="relative">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Place <span className="text-red-500">*</span>
                     {formData.latitude && formData.longitude && (
                       <span className="ml-2 text-xs text-green-600">
@@ -610,7 +605,7 @@ const LeaderNew = () => {
 
                   {/* Place Suggestions Dropdown */}
                   {showPlaceSuggestions && (
-                    <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                    <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-lg overflow-hidden">
 
                       <div className="px-4 py-2 bg-slate-50 border-b border-slate-200">
                         <span className="text-xs font-medium text-slate-500">SUGGESTED PLACES</span>
@@ -713,7 +708,7 @@ const LeaderNew = () => {
                     onBlur={handleChurchNameBlur}
                     disabled={isFormDisabled}
                     autoComplete="off"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                     placeholder="Enter church name or 'No'"
                   />
                 </div>
@@ -768,8 +763,8 @@ const LeaderNew = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">Event Configuration</h2>
+            <div className="p-3 sm:p-6 border-t border-slate-100 bg-slate-50/50">
+              <h2 className="text-base font-bold text-slate-800 mb-3">Event Configuration</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
@@ -780,7 +775,7 @@ const LeaderNew = () => {
                     onChange={handleChange}
                     disabled={isFormDisabled || !isAdminUser()}
                     autoComplete="off"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="no">Not Following</option>
                     {groups.map((g) => (
@@ -829,7 +824,7 @@ const LeaderNew = () => {
               <button
                 type="submit"
                 disabled={isSubmitting || !hasAccess()}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto justify-center px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? 'Registering...' : 'Register Leader'}
                 <FiSave className="w-4 h-4" />

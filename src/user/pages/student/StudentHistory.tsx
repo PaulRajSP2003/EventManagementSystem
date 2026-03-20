@@ -4,12 +4,13 @@ import EmptyState from '../components/EmptyState';
 import { useNavigate, useParams } from 'react-router-dom';
 import { studentAPI } from '../api/StudentData';
 import {
-    FiArrowLeft, FiActivity, FiEdit, FiSearch, FiFilter, FiHome, FiUsers, FiKey, FiUserPlus, FiCalendar, FiUser, FiClock,
+    FiActivity, FiEdit, FiSearch, FiFilter, FiHome, FiUsers, FiKey, FiUserPlus, FiCalendar, FiUser, FiClock,
     FiMail, FiPhone
 } from 'react-icons/fi';
 import { HiOutlineHeart, HiOutlineDocumentText } from 'react-icons/hi';
 import { BsPersonCheck, BsPeople } from 'react-icons/bs';
 import AccessAlert from '../components/AccessAlert';
+import { StickyHeader } from '../components';
 
 const SkeletonBlock = ({ className = "" }: { className?: string }) => (
     <div className={`animate-pulse bg-slate-200 rounded ${className}`} />
@@ -245,7 +246,7 @@ const StudentHistory: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [accessDenied, setAccessDenied] = useState(false);
-    
+
     // Permission data state
     const [permissionData, setPermissionData] = useState<PermissionData | null>(null);
     const [permissionLoading, setPermissionLoading] = useState(true);
@@ -260,7 +261,7 @@ const StudentHistory: React.FC = () => {
                 setPermissionError(false);
                 const data = await fetchPermissionData();
                 setPermissionData(data);
-                
+
                 // Check if user is admin or co-admin
                 const isAdmin = isAdminOrCoAdmin(data);
                 if (!isAdmin) {
@@ -272,7 +273,7 @@ const StudentHistory: React.FC = () => {
                 setPermissionData(null);
                 setPermissionError(true);
                 setAccessDenied(true);
-                
+
                 // Check for 403 Forbidden error
                 if (error.message === 'Forbidden' || error.message?.includes('403')) {
                     setErrorMessage("Access Forbidden: You don't have permission to access this resource");
@@ -314,11 +315,11 @@ const StudentHistory: React.FC = () => {
                 setHistoryData(data);
             } catch (error) {
                 console.error('Failed to load student history:', error);
-                
+
                 // Check if it's a 403 Forbidden error
                 const errorMessage = error instanceof Error ? error.message : 'Failed to load student history';
-                
-                if (errorMessage.toLowerCase().includes('forbidden') || 
+
+                if (errorMessage.toLowerCase().includes('forbidden') ||
                     errorMessage.toLowerCase().includes('permission') ||
                     errorMessage.toLowerCase().includes('unauthorized')) {
                     setAccessDenied(true);
@@ -342,22 +343,7 @@ const StudentHistory: React.FC = () => {
     if (permissionLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-                <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                    <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                            >
-                                <FiArrowLeft /> Back
-                            </button>
-                            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                                Student History
-                            </h1>
-                        </div>
-                    </div>
-                </div>
+                <StickyHeader title="Student History" />
                 <StudentHistorySkeleton />
             </div>
         );
@@ -375,22 +361,7 @@ const StudentHistory: React.FC = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-                <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                    <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                            >
-                                <FiArrowLeft /> Back
-                            </button>
-                            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                                Student History
-                            </h1>
-                        </div>
-                    </div>
-                </div>
+                <StickyHeader title="Student History" />
                 <StudentHistorySkeleton />
             </div>
         );
@@ -399,22 +370,7 @@ const StudentHistory: React.FC = () => {
     if (error || !historyData) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-                <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                    <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                        <div className="flex items-center gap-6">
-                            <button
-                                onClick={() => navigate(-1)}
-                                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                            >
-                                <FiArrowLeft /> Back
-                            </button>
-                            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                                Student History
-                            </h1>
-                        </div>
-                    </div>
-                </div>
+                <StickyHeader title="Student History" />
                 <div className="max-w-6xl mx-auto py-16 px-4">
                     <EmptyState
                         title="Error Loading Data"
@@ -486,56 +442,42 @@ const StudentHistory: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
             {/* Header */}
-            <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-                <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-                    <div className="flex items-center gap-6">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-                        >
-                            <FiArrowLeft /> Back
-                        </button>
-                        <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-                        <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                            Student History
-                        </h1>
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => navigate(`/user/student/replacement/${studentId}`)}
-                            className="flex items-center gap-2 px-4 py-2 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition"
-                        >
-                            <FiActivity /> Replacement
-                        </button>
+            <StickyHeader title="Student History">
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate(`/user/student/replacement/${studentId}`)}
+                        className="flex items-center gap-2 px-4 py-2 border border-indigo-200 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-100 transition"
+                    >
+                        <FiActivity className="w-4 h-4" /> Replacement
+                    </button>
 
-                        <div className="relative group">
-                            <button
-                                onClick={() => {
-                                    if (status?.toLowerCase() === 'registered') {
-                                        navigate(`/user/student/edit/${studentId}`);
-                                    } else {
-                                        handleDisabledEditClick();
-                                    }
-                                }}
-                                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${
-                                    status?.toLowerCase() === 'registered'
-                                        ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                                        : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-                                }`}
-                            >
-                                <FiEdit />
-                                Edit Profile
-                            </button>
-                            {/* Tooltip - only shows when button is disabled */}
-                            {status?.toLowerCase() !== 'registered' && (
-                                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                                    Only status "Registered" students can be edited.
-                                </div>
-                            )}
-                        </div>
+                    <div className="relative group">
+                        <button
+                            onClick={() => {
+                                if (status?.toLowerCase() === 'registered') {
+                                    navigate(`/user/student/edit/${studentId}`);
+                                } else {
+                                    handleDisabledEditClick();
+                                }
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${
+                                status?.toLowerCase() === 'registered'
+                                    ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                                    : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+                            }`}
+                        >
+                            <FiEdit />
+                            Edit Profile
+                        </button>
+                        {/* Tooltip - only shows when button is disabled */}
+                        {status?.toLowerCase() !== 'registered' && (
+                            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+                                Only status "Registered" students can be edited.
+                            </div>
+                        )}
                     </div>
                 </div>
-            </div>
+            </StickyHeader>
 
             {/* Main Content - Rest of the component remains exactly the same */}
             <div className="max-w-6xl mx-auto px-4 py-6">
@@ -549,12 +491,11 @@ const StudentHistory: React.FC = () => {
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-800 capitalize">{name}</h2>
                                 <div className="flex items-center gap-4 mt-1">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                        status?.toLowerCase() === 'present' ? 'bg-green-100 text-green-700' :
+                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${status?.toLowerCase() === 'present' ? 'bg-green-100 text-green-700' :
                                         status?.toLowerCase() === 'registered' ? 'bg-orange-100 text-orange-700' :
-                                        status?.toLowerCase() === 'absent' ? 'bg-red-100 text-red-700' :
-                                        'bg-slate-100 text-slate-700'
-                                    }`}>
+                                            status?.toLowerCase() === 'absent' ? 'bg-red-100 text-red-700' :
+                                                'bg-slate-100 text-slate-700'
+                                        }`}>
                                         {status ? status.charAt(0).toUpperCase() + status.slice(1) : ""}
                                     </span>
                                 </div>
@@ -640,11 +581,10 @@ const StudentHistory: React.FC = () => {
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all duration-200 whitespace-nowrap ${
-                                        activeTab === tab.id
-                                            ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500'
-                                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-                                    }`}
+                                    className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-t-xl transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
+                                        ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-500'
+                                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                                        }`}
                                 >
                                     <Icon className="w-4 h-4" />
                                     {tab.label}
@@ -714,11 +654,10 @@ const StudentHistory: React.FC = () => {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                        item.isActive
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : 'bg-slate-100 text-slate-600'
-                                                    }`}>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-slate-100 text-slate-600'
+                                                        }`}>
                                                         {item.isActive ? 'Active' : 'Inactive'}
                                                     </span>
                                                 </td>
@@ -732,125 +671,123 @@ const StudentHistory: React.FC = () => {
                     )}
 
                     {/* Groups Section */}
-                    {(activeTab === 'all' || activeTab === 'groups') && 
-                     (filteredFollowingGroupHistory.length > 0 || filteredSubGroupHistory.length > 0) && (
-                        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                                            <FiUsers className="w-5 h-5 text-purple-600" />
+                    {(activeTab === 'all' || activeTab === 'groups') &&
+                        (filteredFollowingGroupHistory.length > 0 || filteredSubGroupHistory.length > 0) && (
+                            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+                                                <FiUsers className="w-5 h-5 text-purple-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-slate-800">Group Memberships</h3>
+                                                <p className="text-sm text-slate-500">Following groups and subgroups</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-slate-800">Group Memberships</h3>
-                                            <p className="text-sm text-slate-500">Following groups and subgroups</p>
-                                        </div>
+                                        <span className="text-sm text-slate-500">
+                                            Total: {filteredFollowingGroupHistory.length + filteredSubGroupHistory.length}
+                                        </span>
                                     </div>
-                                    <span className="text-sm text-slate-500">
-                                        Total: {filteredFollowingGroupHistory.length + filteredSubGroupHistory.length}
-                                    </span>
                                 </div>
-                            </div>
 
-                            {/* Following Groups */}
-                            {filteredFollowingGroupHistory.length > 0 && (
-                                <>
-                                    <div className="px-6 py-4 bg-gradient-to-r from-purple-50/50 to-white border-b border-gray-100">
-                                        <h4 className="text-sm font-semibold text-purple-700 flex items-center gap-2">
-                                            <BsPersonCheck className="w-4 h-4" />
-                                            Following Groups
-                                        </h4>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full">
-                                            <thead className="bg-slate-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Group</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Joined</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Added By</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {filteredFollowingGroupHistory.map((item) => (
-                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4 font-medium text-slate-800">{item.groupName}</td>
-                                                        <td className="px-6 py-4">
-                                                            <span className="capitalize text-sm text-slate-600">{item.role}</span>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="text-sm text-slate-800">{formatDateShort(item.createdAt)}</div>
-                                                            <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                                item.isActive
+                                {/* Following Groups */}
+                                {filteredFollowingGroupHistory.length > 0 && (
+                                    <>
+                                        <div className="px-6 py-4 bg-gradient-to-r from-purple-50/50 to-white border-b border-gray-100">
+                                            <h4 className="text-sm font-semibold text-purple-700 flex items-center gap-2">
+                                                <BsPersonCheck className="w-4 h-4" />
+                                                Following Groups
+                                            </h4>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full">
+                                                <thead className="bg-slate-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Group</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Joined</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Added By</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {filteredFollowingGroupHistory.map((item) => (
+                                                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-6 py-4 font-medium text-slate-800">{item.groupName}</td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="capitalize text-sm text-slate-600">{item.role}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <div className="text-sm text-slate-800">{formatDateShort(item.createdAt)}</div>
+                                                                <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                                     ? 'bg-green-100 text-green-700'
                                                                     : 'bg-slate-100 text-slate-600'
-                                                            }`}>
-                                                                {item.isActive ? 'Active' : 'Inactive'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-sm text-slate-600">{item.createdBy}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </>
-                            )}
+                                                                    }`}>
+                                                                    {item.isActive ? 'Active' : 'Inactive'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm text-slate-600">{item.createdBy}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
 
-                            {/* Sub Groups */}
-                            {filteredSubGroupHistory.length > 0 && (
-                                <>
-                                    <div className="px-6 py-4 bg-gradient-to-r from-indigo-50/50 to-white border-y border-gray-100">
-                                        <h4 className="text-sm font-semibold text-indigo-700 flex items-center gap-2">
-                                            <BsPeople className="w-4 h-4" />
-                                            Sub Groups
-                                        </h4>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full">
-                                            <thead className="bg-slate-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Group</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Joined</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Added By</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {filteredSubGroupHistory.map((item) => (
-                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4 font-medium text-slate-800">{item.groupName}</td>
-                                                        <td className="px-6 py-4">
-                                                            <span className="capitalize text-sm text-slate-600">{item.role}</span>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="text-sm text-slate-800">{formatDateShort(item.createdAt)}</div>
-                                                            <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                                item.isActive
+                                {/* Sub Groups */}
+                                {filteredSubGroupHistory.length > 0 && (
+                                    <>
+                                        <div className="px-6 py-4 bg-gradient-to-r from-indigo-50/50 to-white border-y border-gray-100">
+                                            <h4 className="text-sm font-semibold text-indigo-700 flex items-center gap-2">
+                                                <BsPeople className="w-4 h-4" />
+                                                Sub Groups
+                                            </h4>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full">
+                                                <thead className="bg-slate-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Group</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Joined</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Added By</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {filteredSubGroupHistory.map((item) => (
+                                                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-6 py-4 font-medium text-slate-800">{item.groupName}</td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="capitalize text-sm text-slate-600">{item.role}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <div className="text-sm text-slate-800">{formatDateShort(item.createdAt)}</div>
+                                                                <div className="text-xs text-slate-500">{formatTime(item.createdAt)}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                                     ? 'bg-green-100 text-green-700'
                                                                     : 'bg-slate-100 text-slate-600'
-                                                            }`}>
-                                                                {item.isActive ? 'Active' : 'Inactive'}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4 text-sm text-slate-600">{item.createdBy}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </>
-                            )}
-                        </section>
-                    )}
+                                                                    }`}>
+                                                                    {item.isActive ? 'Active' : 'Inactive'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm text-slate-600">{item.createdBy}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
+                            </section>
+                        )}
 
                     {/* Medical Reports Section */}
                     {(activeTab === 'all' || activeTab === 'medical') && filteredMedicalReports.length > 0 && (
@@ -879,11 +816,10 @@ const StudentHistory: React.FC = () => {
                                                     <p className="text-sm text-slate-600 mt-1 capitalize">{report.description}</p>
                                                 </div>
                                             </div>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                report.severity === 1 ? 'bg-green-100 text-green-700' :
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${report.severity === 1 ? 'bg-green-100 text-green-700' :
                                                 report.severity === 2 ? 'bg-yellow-100 text-yellow-700' :
-                                                'bg-red-100 text-red-700'
-                                            }`}>
+                                                    'bg-red-100 text-red-700'
+                                                }`}>
                                                 Severity {report.severity}
                                             </span>
                                         </div>
@@ -987,101 +923,100 @@ const StudentHistory: React.FC = () => {
                     )}
 
                     {/* Parental Stayers Section */}
-                    {(activeTab === 'all' || activeTab === 'parental') && 
-                     (currentParentalStayer || filteredParentalHistory.length > 0) && (
-                        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-teal-50 to-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
-                                        <FiUserPlus className="w-5 h-5 text-teal-600" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-slate-800">Parental Stayers</h3>
-                                        <p className="text-sm text-slate-500">Parent/guardian stay history</p>
+                    {(activeTab === 'all' || activeTab === 'parental') &&
+                        (currentParentalStayer || filteredParentalHistory.length > 0) && (
+                            <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-teal-50 to-white">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                                            <FiUserPlus className="w-5 h-5 text-teal-600" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-slate-800">Parental Stayers</h3>
+                                            <p className="text-sm text-slate-500">Parent/guardian stay history</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Current Parental Stayer */}
-                            {currentParentalStayer && (
-                                <div className="p-6 bg-gradient-to-r from-teal-50 to-white border-b border-gray-100">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
-                                            <BsPersonCheck className="w-6 h-6 text-teal-600" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="font-semibold text-teal-800 mb-1">Current Parental Stayer</h4>
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                <div>
-                                                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block">Leader</span>
-                                                    <span className="text-sm font-medium text-slate-800">{currentParentalStayer.leaderName}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block">Source Code</span>
-                                                    <span className="text-sm font-medium text-slate-800">{currentParentalStayer.sourceCode}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block">Since</span>
-                                                    <span className="text-sm font-medium text-slate-800">{formatDateShort(currentParentalStayer.createdAt)}</span>
+                                {/* Current Parental Stayer */}
+                                {currentParentalStayer && (
+                                    <div className="p-6 bg-gradient-to-r from-teal-50 to-white border-b border-gray-100">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
+                                                <BsPersonCheck className="w-6 h-6 text-teal-600" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="font-semibold text-teal-800 mb-1">Current Parental Stayer</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                    <div>
+                                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block">Leader</span>
+                                                        <span className="text-sm font-medium text-slate-800">{currentParentalStayer.leaderName}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block">Source Code</span>
+                                                        <span className="text-sm font-medium text-slate-800">{currentParentalStayer.sourceCode}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide block">Since</span>
+                                                        <span className="text-sm font-medium text-slate-800">{formatDateShort(currentParentalStayer.createdAt)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                                Active
+                                            </span>
                                         </div>
-                                        <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                                            Active
-                                        </span>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            {/* Parental Stayers History */}
-                            {filteredParentalHistory.length > 0 && (
-                                <>
-                                    <div className="px-6 py-4 bg-gradient-to-r from-teal-50/50 to-white border-b border-gray-100">
-                                        <h4 className="text-sm font-semibold text-teal-700 flex items-center gap-2">
-                                            <FiClock className="w-4 h-4" />
-                                            History
-                                        </h4>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="min-w-full">
-                                            <thead className="bg-slate-50">
-                                                <tr>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Leader</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Source</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">From</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-100">
-                                                {filteredParentalHistory.map((item) => (
-                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                                                        <td className="px-6 py-4 font-medium text-slate-800">{item.leaderName}</td>
-                                                        <td className="px-6 py-4">
-                                                            <span className="px-2.5 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs font-medium">
-                                                                {item.sourceCode}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <div className="text-sm text-slate-800">{formatDateShort(item.createdAt)}</div>
-                                                        </td>
-                                                        <td className="px-6 py-4">
-                                                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                                item.isActive
+                                {/* Parental Stayers History */}
+                                {filteredParentalHistory.length > 0 && (
+                                    <>
+                                        <div className="px-6 py-4 bg-gradient-to-r from-teal-50/50 to-white border-b border-gray-100">
+                                            <h4 className="text-sm font-semibold text-teal-700 flex items-center gap-2">
+                                                <FiClock className="w-4 h-4" />
+                                                History
+                                            </h4>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="min-w-full">
+                                                <thead className="bg-slate-50">
+                                                    <tr>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Leader</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Source</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">From</th>
+                                                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {filteredParentalHistory.map((item) => (
+                                                        <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                                                            <td className="px-6 py-4 font-medium text-slate-800">{item.leaderName}</td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="px-2.5 py-1 bg-teal-50 text-teal-700 rounded-lg text-xs font-medium">
+                                                                    {item.sourceCode}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <div className="text-sm text-slate-800">{formatDateShort(item.createdAt)}</div>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
                                                                     ? 'bg-green-100 text-green-700'
                                                                     : 'bg-slate-100 text-slate-600'
-                                                            }`}>
-                                                                {item.isActive ? 'Active' : 'Inactive'}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </>
-                            )}
-                        </section>
-                    )}
+                                                                    }`}>
+                                                                    {item.isActive ? 'Active' : 'Inactive'}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                )}
+                            </section>
+                        )}
 
                     {/* Waiting List Section */}
                     {(activeTab === 'all' || activeTab === 'waiting-list') && filteredWaitingListHistory.length > 0 && (
@@ -1134,11 +1069,10 @@ const StudentHistory: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                        item.isActive
-                                                            ? 'bg-green-100 text-green-700'
-                                                            : 'bg-slate-100 text-slate-600'
-                                                    }`}>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.isActive
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-slate-100 text-slate-600'
+                                                        }`}>
                                                         {item.isActive ? 'Active' : 'Inactive'}
                                                     </span>
                                                 </td>
@@ -1160,14 +1094,14 @@ const StudentHistory: React.FC = () => {
                         (activeTab === 'waiting-list' && filteredWaitingListHistory.length === 0) ||
                         (activeTab === 'parental' && filteredParentalHistory.length === 0 && !currentParentalStayer)
                     ) && (
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
-                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <FiActivity className="w-8 h-8 text-slate-400" />
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <FiActivity className="w-8 h-8 text-slate-400" />
+                                </div>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">No {tabs.find(t => t.id === activeTab)?.label} History</h3>
+                                <p className="text-slate-500">No records found for this section.</p>
                             </div>
-                            <h3 className="text-lg font-semibold text-slate-800 mb-2">No {tabs.find(t => t.id === activeTab)?.label} History</h3>
-                            <p className="text-slate-500">No records found for this section.</p>
-                        </div>
-                    )}
+                        )}
                 </div>
             </div>
         </div>

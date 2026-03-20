@@ -12,7 +12,7 @@ import {
     Filter,
     Mail,
 } from 'lucide-react';
-import { useNotification } from '../../hooks/useNotification';
+import { API_BASE } from '../../../config/api';
 import { fetchPermissionData } from '../permission';
 import type { Notification as ApiNotification } from '../../../types/Notification/types';
 
@@ -165,12 +165,13 @@ type FilterType = 'all' | 'student' | 'leader';
 type NotificationFilterType = 'all' | 'student' | 'leader';
 
 import { useNavigate } from 'react-router-dom';
+import { useSignalR } from '../../context/SignalRContext';
 
 const SideDashboard = () => {
     const navigate = useNavigate();
     const [sidebarData, setSidebarData] = useState<SidebarData>(() => {
         try {
-            const saved = localStorage.getItem('sidebardata');
+            const saved = localStorage.getItem('notification-bar-data');
             if (!saved) return { open: false, isLocked: false, lockedEmail: '' };
             const parsed = JSON.parse(saved);
             return {
@@ -204,9 +205,11 @@ const SideDashboard = () => {
         const loadEventId = async () => {
             try {
                 const permissionData = await fetchPermissionData();
-                setEventId(permissionData.eventId);
-                // Fetch attendance stats for this event
-                await fetchAttendanceStats(permissionData.eventId);
+                if (permissionData) {
+                    setEventId(permissionData.eventId);
+                    // Fetch attendance stats for this event
+                    await fetchAttendanceStats(permissionData.eventId);
+                }
             } catch (error) {
                 console.error('Failed to load permission data:', error);
             } finally {
@@ -219,8 +222,7 @@ const SideDashboard = () => {
     // Fetch attendance stats from API
     const fetchAttendanceStats = async (eventId: number) => {
         try {
-            const apiUrl = 'https://localhost:7135';
-            const response = await fetch(`${apiUrl}/api/Notification/stats/${eventId}`, {
+            const response = await fetch(`${API_BASE}/Notification/stats/${eventId}`, {
                 credentials: 'include'
             });
             if (response.ok) {
@@ -246,13 +248,14 @@ const SideDashboard = () => {
     };
 
     // Initialize notification hook with eventId
+    // Initialize notification context
     const {
         notifications: apiNotifications,
         unreadCount,
         isConnected,
         markPersonNotificationsAsRead,
         clearNotifications
-    } = useNotification(eventId);
+    } = useSignalR();
 
     // Update attendance data when new notifications arrive
     useEffect(() => {
@@ -284,18 +287,18 @@ const SideDashboard = () => {
     const notifications = useMemo(() => {
         return apiNotifications
             .map(convertApiNotification)
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }, [apiNotifications]);
 
     // Persist sidebar state
     useEffect(() => {
-        localStorage.setItem('sidebardata', JSON.stringify(sidebarData));
+        localStorage.setItem('notification-bar-data', JSON.stringify(sidebarData));
     }, [sidebarData]);
 
     // Sync sidebar state across tabs
     useEffect(() => {
         const handler = (e: StorageEvent) => {
-            if (e.key === 'sidebardata' && e.newValue) {
+            if (e.key === 'notification-bar-data' && e.newValue) {
                 try {
                     const data = JSON.parse(e.newValue);
                     setSidebarData({
@@ -515,7 +518,7 @@ const SideDashboard = () => {
                         <div className="flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
                             <span className="text-[10px] text-gray-500">
-                                {isConnected ? 'Live' : 'Disconnected'}
+                                {isConnected ? 'Online' : 'Offline'}
                             </span>
                         </div>
                     </div>

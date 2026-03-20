@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { Leader } from '../../../types';
 import EmptyState from '../components/EmptyState';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
-import AccessAlert from '../components/AccessAlert';
+import { StickyHeader, AccessAlert } from '../components';
 import { leaderAPI } from '../api/LeaderData';
 
 const place_list = [
@@ -23,8 +23,8 @@ const place_list = [
 ];
 
 const LeaderEditSkeleton = () => (
-  <div className="max-w-5xl mx-auto px-4 mt-8">
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden animate-pulse">
+  <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse">
       <div className="p-6 border-b border-slate-100">
         <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
         <div className="h-4 w-64 bg-gray-200 rounded"></div>
@@ -359,39 +359,12 @@ const LeaderEdit = () => {
 
   const isFormDisabled = showSuccessActions || isSubmitting || leader?.status !== 'registered' || !hasAccess();
 
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-      <div className="max-w-5xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate(-1)}
-            disabled={!hasAccess()}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <FiArrowLeft /> Back
-          </button>
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Edit Leader</h1>
-        </div>
-        {/* Check if user has permission to view leader list */}
-        {canViewLeaderList() && (
-          <button
-            onClick={() => navigate('/user/leader')}
-            disabled={!hasAccess()}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Leader List
-          </button>
-        )}
-      </div>
-    </div>
-  );
 
   // Show loading while permissions are loading
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Leader" onBack={() => navigate(-1)} />
         <LeaderEditSkeleton />
       </div>
     );
@@ -409,7 +382,7 @@ const LeaderEdit = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Leader" onBack={() => navigate(-1)} />
         <LeaderEditSkeleton />
       </div>
     );
@@ -418,7 +391,7 @@ const LeaderEdit = () => {
   if (error || !leader || leader.id !== leaderIdFromUrl) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Leader" onBack={() => navigate(-1)} />
         <EmptyState
           title="Invalid Leader"
           message="The leader ID in the URL does not match any record."
@@ -432,10 +405,10 @@ const LeaderEdit = () => {
   if (leader.status !== 'registered') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Leader" onBack={() => navigate(-1)} />
         <div className="max-w-5xl mx-auto px-4 mt-10">
           <div className="max-w-6xl mx-auto py-16 px-4 flex justify-center">
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 max-w-md w-full text-center">
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 max-w-md w-full text-center">
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600">
                 <FiAlertTriangle className="w-7 h-7" />
               </div>
@@ -461,10 +434,20 @@ const LeaderEdit = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Edit Leader" onBack={() => navigate(-1)}>
+        {canViewLeaderList() && (
+          <button
+            onClick={() => navigate('/user/leader')}
+            disabled={!hasAccess()}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Leader List
+          </button>
+        )}
+      </StickyHeader>
 
-      <div className="max-w-5xl mx-auto px-4 mt-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+      <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden relative">
           <AnimatePresence>
             {showSuccessActions && (
               <motion.div
@@ -484,7 +467,7 @@ const LeaderEdit = () => {
                 <div className="flex flex-wrap justify-center gap-4">
                   <button
                     onClick={() => navigate(`/user/leader/${id}`, { state: { fromEdit: true } })}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all shadow-md"
+                    className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all"
                   >
                     <FiUser /> View Profile
                   </button>
@@ -500,17 +483,17 @@ const LeaderEdit = () => {
           </AnimatePresence>
 
           <form onSubmit={handleSubmit}>
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-start justify-between gap-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Edit Leader Details</h2>
-                <p className="text-slate-600 text-sm mt-1">Update the leader's information below.</p>
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">Edit Leader Details</h2>
+                <p className="text-slate-500 text-xs mt-1">Update the leader's information below.</p>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-slate-500">ID: #{leaderIdFromUrl}</div>
+                <div className="text-xs font-medium text-slate-400">ID: #{leaderIdFromUrl}</div>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-3 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Name */}
                 <div>
@@ -523,7 +506,7 @@ const LeaderEdit = () => {
                     required
                     autoComplete="off"
                     disabled={isFormDisabled}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -537,7 +520,7 @@ const LeaderEdit = () => {
                     required
                     autoComplete="off"
                     disabled={isFormDisabled}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -598,7 +581,7 @@ const LeaderEdit = () => {
                     onFocus={handleChurchNameFocus}
                     onBlur={handleChurchNameBlur}
                     disabled={isFormDisabled}
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
 
@@ -615,7 +598,7 @@ const LeaderEdit = () => {
                       onChange={handleChange}
                       required
                       disabled={isFormDisabled}
-                      className={`w-full px-4 py-2.5 border rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed ${contactNumberError ? 'border-red-500' : 'border-slate-200'}`}
+                      className={`w-full px-4 py-2 border rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed ${contactNumberError ? 'border-red-500' : 'border-slate-200'}`}
                     />
                     {formData.contactNumber.length >= 10 && (
                       <FiCheckCircle className="absolute right-3 top-3 text-green-500" />
@@ -649,8 +632,8 @@ const LeaderEdit = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800 mb-4">Event Configuration</h2>
+            <div className="p-3 sm:p-6 border-t border-slate-100 bg-slate-50/50">
+              <h2 className="text-base font-bold text-slate-800 mb-3">Event Configuration</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Group Following</label>
@@ -660,7 +643,7 @@ const LeaderEdit = () => {
                     onChange={handleChange}
                     disabled={isFormDisabled || !isAdminUser()}
                     autoComplete="off"
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <option value="no">Not Following</option>
                     {groups.map(g => (

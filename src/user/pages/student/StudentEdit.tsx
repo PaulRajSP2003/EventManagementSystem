@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { FiArrowLeft, FiCheckCircle, FiMapPin, FiUser, FiEdit3 } from 'react-icons/fi';
+import { FiCheckCircle, FiMapPin, FiUser, FiEdit3 } from 'react-icons/fi';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Student } from '../../../types';
 import EmptyState from '../components/EmptyState';
 import { PAGE_PERMISSIONS, canAccess, fetchPermissionData, type PermissionData } from '../permission';
-import AccessAlert from '../components/AccessAlert';
+import { StickyHeader, AccessAlert } from '../components';
 import { studentAPI } from '../api/StudentData';
 
 const place_list = [
@@ -16,8 +16,8 @@ const place_list = [
 // Skeleton (unchanged)
 const StudentEditSkeleton = () => {
   return (
-    <div className="max-w-5xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="max-w-5xl mx-auto px-4 mt-2 sm:mt-8 space-y-6 animate-pulse">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="p-6 border-b border-slate-100">
           <div className="h-6 w-48 bg-gray-200 rounded mb-2"></div>
           <div className="h-4 w-64 bg-gray-200 rounded"></div>
@@ -401,28 +401,12 @@ const StudentEdit = () => {
   const isValidPhoneNumber = (number: string) => /^[0-9]{10,}$/.test(number);
   const isFormDisabled = showSuccessActions || isSubmitting || !hasAccess() || accessDenied;
 
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button onClick={() => navigate('/user/student')} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium">
-            <FiArrowLeft /> Back
-          </button>
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Edit Student</h1>
-        </div>
-        <button onClick={() => navigate('/user/student')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium">
-          View All Students
-        </button>
-      </div>
-    </div>
-  );
 
   // Show loading while permissions are loading (like StudentList)
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Student" onBack={() => navigate('/user/student')} />
         <StudentEditSkeleton />
       </div>
     );
@@ -439,7 +423,7 @@ const StudentEdit = () => {
 
   if (loading) return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Edit Student" onBack={() => navigate('/user/student')} />
       <StudentEditSkeleton />
     </div>
   );
@@ -448,7 +432,7 @@ const StudentEdit = () => {
   if (error || !student) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Student" onBack={() => navigate('/user/student')} />
         <div className="max-w-5xl mx-auto px-4 mt-10">
           <EmptyState
             title="Student Not Found"
@@ -465,7 +449,7 @@ const StudentEdit = () => {
   if (student.status !== 'registered') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
+        <StickyHeader title="Edit Student" onBack={() => navigate('/user/student')} />
         <div className="max-w-5xl mx-auto px-4 mt-10">
           <div
             onClick={() => navigate(`/user/student/${id}`, { state: { fromEdit: true } })}
@@ -485,9 +469,13 @@ const StudentEdit = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Edit Student" onBack={() => navigate('/user/student')}>
+        <button onClick={() => navigate('/user/student')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium">
+          View All Students
+        </button>
+      </StickyHeader>
       <div className="max-w-5xl mx-auto px-4 mt-8">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden relative">
 
           {/* Success Overlay Logic */}
           <AnimatePresence>
@@ -510,7 +498,7 @@ const StudentEdit = () => {
                 <div className="flex flex-wrap justify-center gap-4">
                   <button
                     onClick={() => navigate(`/user/student/${updatedStudentId ?? id}`, { state: { fromEdit: true } })}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all shadow-md"
+                    className="hidden sm:flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-900 transition-all"
                   >
                     <FiUser /> View Profile
                   </button>
@@ -530,14 +518,14 @@ const StudentEdit = () => {
               e.preventDefault();
             }
           }}>
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-start justify-between gap-6">
               <div>
-                <h2 className="text-xl font-bold text-slate-800">Edit Student Details</h2>
-                <p className="text-slate-600 text-sm mt-1">Update the student's information below.</p>
+                <h2 className="text-base sm:text-lg font-bold text-slate-800">Edit Student Details</h2>
+                <p className="text-slate-500 text-xs mt-1">Update the student's information below.</p>
               </div>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className="p-3 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Full Name */}
                 <div>
@@ -550,13 +538,13 @@ const StudentEdit = () => {
                     required 
                     disabled={isFormDisabled} 
                     autoComplete='off' 
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize" 
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize" 
                   />
                 </div>
 
                 {/* Age */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
                     Age * 
                     <span className="ml-2 text-xs text-slate-400 font-normal">
                       (Enter age or year of birth, e.g., {new Date().getFullYear()})
@@ -571,7 +559,7 @@ const StudentEdit = () => {
                     required 
                     disabled={isFormDisabled}  
                     autoComplete='off' 
-                    className={`w-full px-4 py-2.5 border rounded-lg bg-slate-50 text-sm ${ageError ? 'border-red-500' : 'border-slate-200'}`} 
+                    className={`w-full px-4 py-2 border rounded-lg bg-slate-50 text-sm ${ageError ? 'border-red-500' : 'border-slate-200'}`} 
                   />
                   {ageError && (
                     <p className="mt-1 text-xs text-red-500">{ageError}</p>
@@ -588,7 +576,7 @@ const StudentEdit = () => {
                     required 
                     disabled={isFormDisabled}  
                     autoComplete='off' 
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm"
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -638,7 +626,7 @@ const StudentEdit = () => {
                     required 
                     disabled={isFormDisabled} 
                     autoComplete='off' 
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize" 
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize" 
                   />
                 </div>
 
@@ -655,7 +643,7 @@ const StudentEdit = () => {
                       autoComplete='off' 
                       required 
                       disabled={isFormDisabled} 
-                      className={`w-full px-4 py-2.5 border rounded-lg bg-slate-50 text-sm ${contactNumberError ? 'border-red-500' : 'border-slate-200'}`} 
+                      className={`w-full px-4 py-2 border rounded-lg bg-slate-50 text-sm ${contactNumberError ? 'border-red-500' : 'border-slate-200'}`} 
                     />
                     {isValidPhoneNumber(formData.contactNumber) && <FiCheckCircle className="absolute right-3 top-3 text-green-500" />}
                   </div>
@@ -699,14 +687,14 @@ const StudentEdit = () => {
                     onFocus={handleChurchNameFocus} 
                     onBlur={handleChurchNameBlur} 
                     disabled={isFormDisabled} 
-                    className="w-full px-4 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize" 
+                    className="w-full px-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-sm capitalize" 
                   />
                 </div>
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800">Event Details</h2>
+            <div className="p-3 sm:p-6 border-t border-slate-100 bg-slate-50/50">
+              <h2 className="text-base font-bold text-slate-800">Event Details</h2>
               <div className="mt-4">
                 <label className="block text-sm font-medium text-slate-700 mb-2">Remarks</label>
                 <textarea 

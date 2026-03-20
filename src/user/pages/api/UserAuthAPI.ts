@@ -29,7 +29,8 @@ export interface User {
   groups?: string[];
 }
 
-const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || '/api';
+import { API_BASE } from '../../../config/api';
+
 
 class UserAuthAPI {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
@@ -49,7 +50,7 @@ class UserAuthAPI {
       });
 
       const data = await response.json();
-      
+
       if (!response.ok) {
         return {
           success: false,

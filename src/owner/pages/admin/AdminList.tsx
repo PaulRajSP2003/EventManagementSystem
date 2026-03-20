@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { FiSearch, FiPlus, FiArrowLeft, FiChevronUp, FiChevronDown, FiFilter, FiEdit } from 'react-icons/fi';
+import { FiSearch, FiPlus, FiChevronUp, FiChevronDown, FiFilter, FiEdit, FiX } from 'react-icons/fi';
 import { adminAPI } from '../../api/AdminData';
 import type { Admin } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
 import { Link, useNavigate } from 'react-router-dom';
+import StickyHeader from '../components/StickyHeader';
 
 type FilterType = {
   eventId: string;
@@ -19,10 +20,10 @@ type SortConfig = {
 };
 
 const AdminListSkeleton = () => (
-  <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
+  <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-8 space-y-6 animate-pulse">
     <div className="h-20 bg-white rounded-xl border border-slate-200 shadow-sm"></div>
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="h-12 bg-slate-50 border-b border-slate-200"></div>
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-visible">
+      <div className="h-12 bg-slate-50 border-b border-slate-200 rounded-t-xl"></div>
       {[1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="h-16 border-b border-slate-100 mx-4"></div>
       ))}
@@ -131,64 +132,57 @@ export default function AdminList() {
   return (
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50 pb-12">
-        {/* Sticky Header */}
-        <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group"
-              >
-                <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                Back
-              </button>
-
-              <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block"></div>
-
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Admin Management
-              </h1>
-            </div>
-
-            <Link
-              to="/owner/admin/new"
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              <FiPlus /> New Admin
-            </Link>
-
-          </div>
-        </div>
+        <StickyHeader 
+          title="Admin Management"
+          onBack={() => navigate('/owner/dashboard')}
+        >
+          <Link
+            to="/owner/admin/new"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-sm font-medium whitespace-nowrap shadow-sm active:scale-95"
+          >
+            <FiPlus className="w-4 h-4" />
+            <span className="hidden sm:inline">New Admin</span>
+            <span className="sm:hidden text-lg">+</span>
+          </Link>
+        </StickyHeader>
 
         {loading ? (
           <AdminListSkeleton />
         ) : (
-          <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6">
+          <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-8 space-y-6">
             {/* Search & Filter Bar */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="p-4 border-b border-slate-50 bg-white">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="rounded-xl border border-slate-200 overflow-visible bg-white shadow-sm">
+              <div className="p-4 border-b border-slate-50">
+                <div className="flex flex-row items-center justify-between gap-2 sm:gap-4">
                   <div className="relative flex-1">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <FiSearch className="text-slate-400" />
                     </div>
                     <input
                       type="text"
-                      placeholder="Search by name, email, or role..."
-                      className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
+                      placeholder="Search admins..."
+                      className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg sm:bg-slate-50 bg-transparent text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      >
+                        <FiX className="text-slate-400 hover:text-slate-600" />
+                      </button>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowFilters(!showFilters)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${showFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+                      className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all border ${showFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'sm:bg-white bg-transparent border-slate-300 text-slate-700 hover:bg-slate-50'}`}
                     >
-                      <FiFilter /> Filters
+                      <FiFilter /> <span className="hidden xs:inline">Filters</span>
                     </button>
                     {(searchTerm || Object.values(filters).some(v => v)) && (
-                      <button onClick={clearFilters} className="text-xs text-slate-500 hover:text-red-600 font-semibold px-2 transition-colors">
+                      <button onClick={clearFilters} className="text-xs text-slate-500 hover:text-red-600 font-semibold px-1 sm:px-2 transition-colors">
                         Reset
                       </button>
                     )}
@@ -197,61 +191,86 @@ export default function AdminList() {
               </div>
 
               {showFilters && (
-                <div className="p-4 bg-slate-50/50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 border-b border-slate-100">
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">Event ID</label>
-                    <input
-                      type="number"
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                      value={filters.eventId}
-                      onChange={(e) => setFilters(p => ({ ...p, eventId: e.target.value }))}
-                      placeholder="Filter by Event ID"
-                    />
+                <div className="p-3 border-b border-slate-100">
+                  {/* Desktop View: Grid */}
+                  <div className="hidden sm:grid grid-cols-5 gap-4">
+                    {['eventId', 'name', 'email'].map((field) => (
+                      <div key={field} className="space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400">{field === 'eventId' ? 'Event ID' : field.toUpperCase()}</label>
+                        <input
+                          type={field === 'eventId' ? 'number' : 'text'}
+                          className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                          value={filters[field as keyof FilterType]}
+                          onChange={(e) => setFilters(p => ({ ...p, [field]: e.target.value }))}
+                        />
+                      </div>
+                    ))}
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Role</label>
+                      <select className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white" value={filters.role} onChange={(e) => setFilters(p => ({ ...p, role: e.target.value }))}>
+                        <option value="">Any Role</option>
+                        <option value="admin">Admin</option>
+                        <option value="co-admin">Co-Admin</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
+                      <select className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white" value={filters.status} onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}>
+                        <option value="">Any Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">Name</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                      value={filters.name}
-                      onChange={(e) => setFilters(p => ({ ...p, name: e.target.value }))}
-                      placeholder="Filter by Name"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">Email</label>
-                    <input
-                      type="text"
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                      value={filters.email}
-                      onChange={(e) => setFilters(p => ({ ...p, email: e.target.value }))}
-                      placeholder="Filter by Email"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">Role</label>
-                    <select 
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500" 
-                      value={filters.role} 
-                      onChange={(e) => setFilters(p => ({ ...p, role: e.target.value }))}
-                    >
-                      <option value="">All Roles</option>
-                      <option value="admin">Admin</option>
-                      <option value="co-admin">Co-Admin</option>
-                      <option value="user">User</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
-                    <select 
-                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500" 
-                      value={filters.status} 
-                      onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}
-                    >
-                      <option value="">All Status</option>
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
+
+                  {/* Mobile View: Rows */}
+                  <div className="sm:hidden space-y-3">
+                    <div className="flex gap-3">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400">Event ID</label>
+                        <input
+                          type="number"
+                          className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm"
+                          value={filters.eventId}
+                          onChange={(e) => setFilters(p => ({ ...p, eventId: e.target.value }))}
+                        />
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400">Role</label>
+                        <select
+                          className="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer shadow-sm"
+                          value={filters.role}
+                          onChange={(e) => setFilters(p => ({ ...p, role: e.target.value }))}
+                        >
+                          <option value="">Any Role</option>
+                          <option value="admin">Admin</option>
+                          <option value="co-admin">Co-Admin</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Name</label>
+                      <input
+                        type="text"
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm"
+                        value={filters.name}
+                        onChange={(e) => setFilters(p => ({ ...p, name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="flex-1 space-y-1">
+                        <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
+                        <select 
+                          className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-white shadow-sm cursor-pointer" 
+                          value={filters.status} 
+                          onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}
+                        >
+                          <option value="">Any Status</option>
+                          <option value="active">Active</option>
+                          <option value="inactive">Inactive</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -264,8 +283,8 @@ export default function AdminList() {
               </div>
             )}
 
-            {/* Table Container */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            {/* Table Container - Desktop View */}
+            <div className="hidden sm:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-50/80 border-b border-slate-200">
@@ -350,8 +369,84 @@ export default function AdminList() {
               </div>
             </div>
 
+            {/* Card View - Mobile View */}
+            <div className="sm:hidden space-y-4">
+              {filteredAdmins.map((admin, index) => (
+                <div
+                  key={admin.id ? `admin-mobile-${admin.id}-${index}` : `admin-mobile-${index}`}
+                  onClick={() => navigate(`/owner/admin/${admin.id}`)}
+                  className="rounded-xl border border-slate-200 overflow-hidden p-4 shadow-sm bg-white"
+                >
+                  <div className="flex gap-4">
+                    {/* Admin ID */}
+                    <div className="w-1/4 border-r border-slate-100 pr-2">
+                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Admin ID</div>
+                      <div className="text-sm font-bold text-indigo-600">Id:{admin.id}</div>
+                    </div>
+
+                    {/* Details */}
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-400 uppercase">Details</span>
+                        <div className="flex gap-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            admin.role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                            'bg-blue-50 text-blue-700 border-blue-100'
+                          }`}>
+                            {admin.role.toUpperCase()}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${admin.isActive
+                              ? 'bg-green-50 text-green-700 border-green-100'
+                              : 'bg-red-50 text-red-700 border-red-100'
+                            }`}>
+                            {admin.isActive ? 'ACTIVE' : 'INACTIVE'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-1">
+                        <div className="flex gap-2">
+                          <span className="text-xs font-semibold text-slate-500 w-16">Name:</span>
+                          <span className="text-xs font-bold text-slate-800 capitalize">{admin.name}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-xs font-semibold text-slate-500 w-16">Event ID:</span>
+                          <span className="text-xs text-slate-700">{admin.eventId || 'N/A'}</span>
+                        </div>
+                        <div className="flex gap-2 text-[11px]">
+                          <span className="text-xs font-semibold text-slate-500 w-16 shrink-0">Email:</span>
+                          <span className="text-xs text-slate-700 truncate flex-1 lowercase">{admin.email}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <span className="text-xs font-semibold text-slate-500 w-16">Phone:</span>
+                          <span className="text-xs text-slate-700">{admin.contactNumber || 'N/A'}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/owner/admin/edit/${admin.id}`);
+                          }}
+                          className="w-full py-2 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold flex items-center justify-center gap-2 border border-indigo-100 uppercase"
+                        >
+                          <FiEdit size={14} /> Edit Admin
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {filteredAdmins.length === 0 && (
+                <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-dashed border-slate-300">
+                  No admins found.
+                </div>
+              )}
+            </div>
+
             {filteredAdmins.length > 0 && (
-              <div className="text-xs text-slate-400 px-2">
+              <div className="text-xs text-slate-400 px-2 pt-2">
                 Showing {filteredAdmins.length} of {admins.length} total admins
               </div>
             )}

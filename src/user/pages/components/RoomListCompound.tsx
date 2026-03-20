@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { Room, RoomData, StayerInfo } from '../../../types';
+import type { Room, RoomData } from '../../../types';
 import { fetchRoomData } from '../api/RoomData';
 import {
   FaMars,
@@ -62,7 +62,7 @@ const RoomListCompound: React.FC<RoomListCompoundProps> = ({
   const [viewGender, setViewGender] = useState<'male' | 'female' | null>(
     personType === 'leader' && genderFilter ? genderFilter : null
   );
-  const [showWaitingList, setShowWaitingList] = useState(true);
+  const [showWaitingList] = useState(true);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -267,7 +267,7 @@ const RoomListCompound: React.FC<RoomListCompoundProps> = ({
 
       {/* Dropdown Panel */}
       {isDropdownOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden min-w-[340px]">
+        <div className="fixed sm:absolute bottom-24 sm:bottom-auto sm:top-full left-4 right-4 sm:left-0 sm:right-auto z-[100] w-auto sm:w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden min-w-[300px] sm:min-w-[400px] max-w-[calc(100vw-2rem)]">
           {/* GENDER SELECTION */}
           {personType === 'student' && (
             <div className="p-4 bg-slate-50/80 border-b border-slate-100">
@@ -346,7 +346,7 @@ const RoomListCompound: React.FC<RoomListCompoundProps> = ({
           {/* ROOM LIST */}
           <div
             ref={scrollContainerRef}
-            className="max-h-80 overflow-y-auto border-t border-slate-100 scroll-smooth bg-slate-50/30"
+            className="max-h-[50vh] sm:max-h-80 overflow-y-auto border-t border-slate-100 scroll-smooth bg-slate-50/30"
           >
             {isFilterEnabled ? (
               filteredAndSortedRooms.length > 0 ? (
@@ -439,11 +439,11 @@ const RoomListCompound: React.FC<RoomListCompoundProps> = ({
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div className="text-right flex-shrink-0">
                           {stats.isOverfilled ? (
-                            <div className="text-[11px] font-black text-purple-600">+{stats.overfilledCount} EXCESS</div>
+                            <div className="text-[10px] sm:text-[11px] font-black text-purple-600">+{stats.overfilledCount} EXCESS</div>
                           ) : (
-                            <div className={`text-[11px] font-black flex items-center justify-end gap-1 ${stats.availableCount === 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
+                            <div className={`text-[10px] sm:text-[11px] font-black flex items-center justify-end gap-1 ${stats.availableCount === 0 ? 'text-rose-500' : 'text-emerald-600'}`}>
                               <FaBed className="text-xs" /> {stats.availableCount} VACANT
                             </div>
                           )}

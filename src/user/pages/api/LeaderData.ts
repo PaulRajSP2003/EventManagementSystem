@@ -1,4 +1,5 @@
 import type { Leader } from '../../../types';
+import { API_BASE } from '../../../config/api';
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -14,7 +15,7 @@ export const leaderAPI = {
   // New method to fetch leader details by ID D:\Project\campmanagementsystem\src\user\pages\leader\LeaderDetail.tsx
   getDetail: async (leaderId: number) => {
     try {
-      const response = await fetch(`https://localhost:7135/api/leader/detail/${leaderId}`, {
+      const response = await fetch(`${API_BASE}/leader/detail/${leaderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -37,7 +38,7 @@ export const leaderAPI = {
 
   updateLeader: async (leaderId: number, changes: { status: string; staying: string }) => {
     try {
-      const response = await fetch(`https://localhost:7135/api/change/leader/${leaderId}`, {
+      const response = await fetch(`${API_BASE}/change/leader/${leaderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -61,7 +62,7 @@ export const leaderAPI = {
 
   getAll: async (): Promise<Leader[]> => {
     try {
-      const response = await fetch('https://localhost:7135/api/leader', {
+      const response = await fetch(`${API_BASE}/leader`, {
         method: 'GET',
         credentials: 'include', // 🔥 REQUIRED for cookie auth
       });
@@ -122,7 +123,7 @@ export const leaderAPI = {
         registeredMode: leader.registered_mode || 'offline',
       };
 
-      const response = await fetch('https://localhost:7135/api/leader', {
+      const response = await fetch(`${API_BASE}/leader`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +151,7 @@ export const leaderAPI = {
 
   getById: async (leaderId: number): Promise<Leader> => {
     try {
-      const response = await fetch(`https://localhost:7135/api/leader/${leaderId}`, {
+      const response = await fetch(`${API_BASE}/leader/${leaderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +183,7 @@ export const leaderAPI = {
 
   update: async (leaderId: number, leader: Omit<Leader, 'id'>): Promise<void> => {
     try {
-      const response = await fetch(`https://localhost:7135/api/leader/${leaderId}`, {
+      const response = await fetch(`${API_BASE}/leader/${leaderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -226,7 +227,7 @@ export const leaderAPI = {
     staying: string
   ) => {
     try {
-      const response = await fetch(`https://localhost:7135/api/change/leader/${leaderId}`, {
+      const response = await fetch(`${API_BASE}/change/leader/${leaderId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -266,7 +267,7 @@ export const leaderAPI = {
 
   getHistory: async (leaderId: number) => {
     try {
-      const response = await fetch(`https://localhost:7135/api/leader/history/${leaderId}`, {
+      const response = await fetch(`${API_BASE}/leader/history/${leaderId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -294,7 +295,7 @@ export const leaderAPI = {
 
   downloadCSV: async (): Promise<void> => {
     try {
-      const downloadUrl = `https://localhost:7135/api/leader/download`;
+      const downloadUrl = `${API_BASE}/leader/download`;
 
       const headers: HeadersInit = {
         'Accept': 'text/csv',

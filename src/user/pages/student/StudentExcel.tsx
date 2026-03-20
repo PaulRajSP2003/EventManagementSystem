@@ -21,15 +21,16 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 }
 import {
-  FiArrowLeft, FiDownload, FiUpload, FiFileText,
+  FiDownload, FiUpload, FiFileText,
   FiRefreshCw, FiArrowRight, FiX, FiCheckCircle, FiAlertCircle, FiMapPin,
-  FiHeart, FiChevronLeft, FiChevronRight, FiUsers, FiSave,
+  FiHeart, FiChevronLeft, FiChevronRight, FiUsers, FiSave
 } from 'react-icons/fi';
+import { API_BASE } from '../../../config/api';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fetchPermissionData, type PermissionData, isAdminOrCoAdmin } from '../permission';
-import AccessAlert from '../components/AccessAlert';
-import PlaceAPI, { type PhotonFeature } from '../api/PlaceList';
+import { StickyHeader, AccessAlert, PlaceSearchInput, type PlaceSelectResult } from '../components';
+import PlaceAPI from '../api/PlaceList';
 import * as XLSX from 'xlsx';
 
 // Types
@@ -72,13 +73,6 @@ interface StudentWithLocation extends StudentData {
   _isValid: boolean;
   _errors: string[];
   _warnings: string[];
-}
-
-interface DuplicateGroup {
-  id: number;
-  students: StudentWithLocation[];
-  matchFields: string[];
-  confidence: 'high' | 'medium' | 'low';
 }
 
 // All available fields
@@ -166,7 +160,6 @@ const StudentExcel = () => {
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Duplicate states
-  const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
 
   // Pagination states
@@ -181,6 +174,41 @@ const StudentExcel = () => {
   const [importProgress, setImportProgress] = useState({ total: 0, completed: 0, failed: 0 });
   const [importResults, setImportResults] = useState<any[]>([]);
   const [showResults, setShowResults] = useState(false);
+
+  // Download template
+  const downloadTemplate = () => {
+    const template = [
+      {
+        'Full Name': 'Aarav Nair',
+        'Age': 14,
+        'Gender': 'Male',
+        'Place': 'Kazhakoottam',
+        'Parent/Guardian Name': 'Suresh Nair',
+        'Church Name': 'St. Thomas Church',
+        'Contact Number': '9876543210',
+        'WhatsApp Number': '9876543210',
+        'Medication': 'None',
+        'Remarks / Notes': ''
+      },
+      {
+        'Full Name': 'Ananya Pillai',
+        'Age': 13,
+        'Gender': 'Female',
+        'Place': 'Pattom',
+        'Parent/Guardian Name': 'Lekha Pillai',
+        'Church Name': 'CSI Church Pattom',
+        'Contact Number': '9123456780',
+        'WhatsApp Number': '9123456780',
+        'Medication': 'Asthma Inhaler',
+        'Remarks / Notes': 'Carries inhaler'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Students');
+    XLSX.writeFile(wb, 'student_import_template.xlsx');
+  };
 
   // Fetch permission data on component mount
   useEffect(() => {
@@ -224,57 +252,6 @@ const StudentExcel = () => {
     return isAdminOrCoAdmin(permissionData);
   };
 
-  // Download template
-  const downloadTemplate = () => {
-    const template = [
-      {
-        'Full Name': 'Aarav Nair',
-        'Age': 14,
-        'Gender': 'Male',
-        'Place': 'Kazhakoottam',
-        'Parent/Guardian Name': 'Suresh Nair',
-        'Church Name': 'St. Thomas Church',
-        'Contact Number': '9876543210',
-        'WhatsApp Number': '9876543210',
-        'Medication': 'None',
-        'Remarks / Notes': ''
-      },
-      {
-        'Full Name': 'Ananya Pillai',
-        'Age': 13,
-        'Gender': 'Female',
-        'Place': 'Pattom',
-        'Parent/Guardian Name': 'Lekha Pillai',
-        'Church Name': 'CSI Church Pattom',
-        'Contact Number': '9123456780',
-        'WhatsApp Number': '9123456780',
-        'Medication': 'Asthma Inhaler',
-        'Remarks / Notes': 'Carries inhaler'
-      }
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(template);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Students');
-    XLSX.writeFile(wb, 'student_import_template.xlsx');
-  };
-
-  // Reset upload
-  const resetUpload = () => {
-    setCurrentStep('upload');
-    setFileName('');
-    setUploadError('');
-    setExcelData([]);
-    setExcelHeaders([]);
-    setColumnMapping([]);
-    setMappedStudents([]);
-    setDuplicateGroups([]);
-    setValidationErrors([]);
-    setCurrentPage(1);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
 
   // Handle file selection
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -484,7 +461,6 @@ const StudentExcel = () => {
   // Check for duplicates
   // Improved duplicate checking with parent name and age
   const checkDuplicates = (students: StudentWithLocation[]) => {
-    const groups: DuplicateGroup[] = [];
     let groupId = 1;
 
     for (let i = 0; i < students.length; i++) {
@@ -556,26 +532,7 @@ const StudentExcel = () => {
         }
       }
 
-      if (group.length > 1) {
-        students[i].duplicateGroup = groupId;
-        students[i].isDuplicate = true;
-
-        const confidence = matchFields.includes('contactNumber') || matchFields.includes('whatsappNumber')
-          ? 'high'
-          : 'medium';
-
-        groups.push({
-          id: groupId,
-          students: group,
-          matchFields: [...new Set(matchFields)],
-          confidence
-        });
-
-        groupId++;
-      }
     }
-
-    setDuplicateGroups(groups);
   };
 
 
@@ -593,7 +550,6 @@ const StudentExcel = () => {
       });
 
       setMappedStudents(uniqueStudents);
-      setDuplicateGroups([]);
       setCurrentStep('locations');
     }
   };
@@ -669,39 +625,6 @@ const StudentExcel = () => {
     );
   };
 
-  // Header component
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate('/user/student')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-          >
-            <FiArrowLeft /> Back to Students
-          </button>
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Student Excel Data Import</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {currentStep !== 'upload' && (
-            <button
-              onClick={resetUpload}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              <FiRefreshCw /> New Upload
-            </button>
-          )}
-          <button
-            onClick={downloadTemplate}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-          >
-            <FiDownload /> Download Template
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   // Step indicator component
   const StepIndicator = () => {
@@ -812,7 +735,7 @@ const StudentExcel = () => {
       const newMappings: ColumnMapping[] = [];
       const usedFields = new Set<keyof StudentData>();
 
-      console.log('Excel Headers:', excelHeaders);
+
 
       const fieldKeywords: Record<keyof StudentData, string[]> = {
         name: ['Name Of Child', 'student name'],
@@ -839,7 +762,7 @@ const StudentExcel = () => {
 
         if (!headerStr) return;
 
-        console.log(`Checking header: "${headerStr}"`);
+
 
         // Check each field's keywords
         Object.entries(fieldKeywords).forEach(([field, keywords]) => {
@@ -854,7 +777,7 @@ const StudentExcel = () => {
           );
 
           if (hasKeyword) {
-            console.log(`✓ Matched "${header}" to ${field} (contains ${keywords.join(' or ')})`);
+
 
             const fieldInfo = ALL_FIELDS.find(f => f.field === studentField);
             newMappings.push({
@@ -877,7 +800,7 @@ const StudentExcel = () => {
         });
 
         if (nameHeader) {
-          console.log(`Special match: Using "${nameHeader}" for name`);
+
           newMappings.push({
             excelColumn: nameHeader,
             studentField: 'name',
@@ -895,7 +818,7 @@ const StudentExcel = () => {
         });
 
         if (placeHeader) {
-          console.log(`Special match: Using "${placeHeader}" for place`);
+
           newMappings.push({
             excelColumn: placeHeader,
             studentField: 'place',
@@ -909,7 +832,7 @@ const StudentExcel = () => {
       if (!usedFields.has('whatsappNumber') && usedFields.has('contactNumber')) {
         const contactMapping = newMappings.find(m => m.studentField === 'contactNumber');
         if (contactMapping) {
-          console.log('Using contact number for whatsapp');
+
           newMappings.push({
             excelColumn: contactMapping.excelColumn,
             studentField: 'whatsappNumber',
@@ -925,10 +848,8 @@ const StudentExcel = () => {
       );
 
       // Log final mappings
-      console.log('Final mappings:');
-      uniqueMappings.forEach(m => {
-        console.log(`  ${m.studentField} ← "${m.excelColumn}"`);
-      });
+
+
 
       setColumnMapping(uniqueMappings);
       setValidationErrors([]);
@@ -1267,12 +1188,7 @@ const StudentExcel = () => {
     }
 
 
-    const [suggestions, setSuggestions] = useState<{ [key: number]: PhotonFeature[] }>({});
-    const [showSuggestions, setShowSuggestions] = useState<{ [key: number]: boolean }>({});
-    const [highlightedIndex, setHighlightedIndex] = useState<{ [key: number]: number }>({});
-    const [isSearching, setIsSearching] = useState<{ [key: number]: boolean }>({});
     const [localInputValues, setLocalInputValues] = useState<{ [key: number]: string }>({});
-    const [dropdownPosition, setDropdownPosition] = useState<{ [key: number]: 'top' | 'bottom' }>({});
 
     const unverifiedLocations = mappedStudents.filter(s => s && s.locationStatus !== 'verified');
     const verifiedCount = mappedStudents.filter(s => s && s.locationStatus === 'verified').length;
@@ -1280,70 +1196,7 @@ const StudentExcel = () => {
 
     const currentData = getCurrentPageData(mappedStudents);
 
-    // Function to check available space and set dropdown position
-    const checkDropdownPosition = (inputElement: HTMLInputElement, globalIndex: number) => {
-      const rect = inputElement.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
-
-      // Minimum space needed for dropdown (approx 300px)
-      const needsSpace = 300;
-
-      if (spaceBelow < needsSpace && spaceAbove > spaceBelow) {
-        setDropdownPosition(prev => ({ ...prev, [globalIndex]: 'top' }));
-      } else {
-        setDropdownPosition(prev => ({ ...prev, [globalIndex]: 'bottom' }));
-      }
-    };
-
-    // Search places immediately without debounce
-    const searchPlaces = async (query: string, studentIndex: number, inputElement?: HTMLInputElement) => {
-      if (!query.trim() || query.trim().length < 2) {
-        setSuggestions(prev => ({ ...prev, [studentIndex]: [] }));
-        setShowSuggestions(prev => ({ ...prev, [studentIndex]: false }));
-        setIsSearching(prev => ({ ...prev, [studentIndex]: false }));
-        return;
-      }
-
-      try {
-        setIsSearching(prev => ({ ...prev, [studentIndex]: true }));
-
-        // Check dropdown position if input element is provided
-        if (inputElement) {
-          checkDropdownPosition(inputElement, studentIndex);
-        }
-
-        // Get up to 10 results from API but only show top 4
-        const features = await PlaceAPI.searchPlaces(query, 10);
-        // Limit to only 4 suggestions
-        const limitedFeatures = features.slice(0, 4);
-        setSuggestions(prev => ({ ...prev, [studentIndex]: limitedFeatures }));
-        setShowSuggestions(prev => ({ ...prev, [studentIndex]: limitedFeatures.length > 0 }));
-        setHighlightedIndex(prev => ({ ...prev, [studentIndex]: -1 }));
-      } catch (error) {
-        console.error('Error searching places:', error);
-        setSuggestions(prev => ({ ...prev, [studentIndex]: [] }));
-      } finally {
-        setIsSearching(prev => ({ ...prev, [studentIndex]: false }));
-      }
-    };
-
-    const handlePlaceChange = (globalIndex: number, value: string, inputElement?: HTMLInputElement) => {
-      // Update local input value immediately for responsive typing
-      setLocalInputValues(prev => ({ ...prev, [globalIndex]: value }));
-
-      // Search immediately as user types
-      if (value.trim().length >= 2) {
-        searchPlaces(value, globalIndex, inputElement);
-      } else {
-        setSuggestions(prev => ({ ...prev, [globalIndex]: [] }));
-        setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-      }
-    };
-
     const handlePlaceBlur = (globalIndex: number) => {
-      // Update the main mappedStudents state only when the input loses focus
       const value = localInputValues[globalIndex] || '';
 
       setMappedStudents(prev => {
@@ -1354,59 +1207,18 @@ const StudentExcel = () => {
         updated[globalIndex].longitude = undefined;
         return updated;
       });
-
-      // Delay hiding suggestions to allow click
-      setTimeout(() => {
-        setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-      }, 200);
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, globalIndex: number) => {
-      const studentSuggestions = suggestions[globalIndex] || [];
-
-      if (showSuggestions[globalIndex] && studentSuggestions.length > 0) {
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          setHighlightedIndex(prev => ({
-            ...prev,
-            [globalIndex]: ((prev[globalIndex] || -1) + 1) % studentSuggestions.length
-          }));
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          setHighlightedIndex(prev => ({
-            ...prev,
-            [globalIndex]: ((prev[globalIndex] || 0) - 1 + studentSuggestions.length) % studentSuggestions.length
-          }));
-        } else if (e.key === 'Enter' && highlightedIndex[globalIndex] >= 0) {
-          e.preventDefault();
-          selectPlace(globalIndex, studentSuggestions[highlightedIndex[globalIndex]]);
-        } else if (e.key === 'Escape') {
-          setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-          setHighlightedIndex(prev => ({ ...prev, [globalIndex]: -1 }));
-        }
-      }
-    };
-
-    const selectPlace = (globalIndex: number, feature: PhotonFeature) => {
-      const displayName = PlaceAPI.getPlaceDisplayName(feature);
-      const { lat, lng } = PlaceAPI.getPlaceCoordinates(feature);
-
-      // Update both local and global state
-      setLocalInputValues(prev => ({ ...prev, [globalIndex]: displayName }));
-
+    const handlePlaceSelect = (globalIndex: number, result: PlaceSelectResult) => {
+      setLocalInputValues(prev => ({ ...prev, [globalIndex]: result.displayName }));
       setMappedStudents(prev => {
         const updated = [...prev];
-        updated[globalIndex].place = displayName;
-        updated[globalIndex].latitude = lat;
-        updated[globalIndex].longitude = lng;
+        updated[globalIndex].place = result.displayName;
+        updated[globalIndex].latitude = result.latitude;
+        updated[globalIndex].longitude = result.longitude;
         updated[globalIndex].locationStatus = 'verified';
         return updated;
       });
-
-      // Hide suggestions
-      setShowSuggestions(prev => ({ ...prev, [globalIndex]: false }));
-      setHighlightedIndex(prev => ({ ...prev, [globalIndex]: -1 }));
-      setSuggestions(prev => ({ ...prev, [globalIndex]: [] }));
     };
 
     const verifyAllLocations = async () => {
@@ -1466,7 +1278,6 @@ const StudentExcel = () => {
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Original Place</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Verified Place</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Coordinates</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Action</th>
               </tr>
@@ -1485,101 +1296,16 @@ const StudentExcel = () => {
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">{student.name}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{student.originalPlace}</td>
                     <td className="px-4 py-3 text-sm">
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={localInputValues[globalIndex] !== undefined ? localInputValues[globalIndex] : (student.place || '')}
-                          onChange={(e) => {
-                            const newValue = e.target.value;
-                            handlePlaceChange(globalIndex, newValue, e.target);
-                          }}
-                          onBlur={() => handlePlaceBlur(globalIndex)}
-                          onKeyDown={(e) => handleKeyDown(e, globalIndex)}
-                          onFocus={(e) => {
-                            if (student.place && student.place.trim().length >= 2) {
-                              searchPlaces(student.place, globalIndex, e.target);
-                            }
-                          }}
-                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-100 focus:border-transparent outline-none pr-8
-                                                    ${student.locationStatus === 'verified' ? 'border-green-300 bg-green-50' :
-                              student.locationStatus === 'not_found' ? 'border-orange-300 bg-orange-50' :
-                                'border-slate-200'}`}
-                          placeholder="Type any location (no character limit)..."
-                          maxLength={1000}
-                        />
-
-                        {/* Loading indicator for search */}
-                        {isSearching[globalIndex] && (
-                          <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
-                            <FiRefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
-                          </div>
-                        )}
-
-                        {/* Place Suggestions Dropdown with dynamic positioning - Limited to 4 results */}
-                        {showSuggestions[globalIndex] && suggestions[globalIndex]?.length > 0 && (
-                          <div
-                            className={`absolute z-50 w-full bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden
-                                                        ${dropdownPosition[globalIndex] === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'}`}
-                            style={{
-                              ...(dropdownPosition[globalIndex] === 'top' && { bottom: '100%' })
-                            }}
-                          >
-                            <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                              <span className="text-xs font-medium text-slate-500">
-                                SUGGESTED PLACES ({suggestions[globalIndex].length})
-                              </span>
-                              <span className="text-xs text-slate-400">
-                                {student.place?.length} characters
-                              </span>
-                            </div>
-                            {suggestions[globalIndex].map((feature: PhotonFeature, suggIdx: number) => {
-                              const isActive = highlightedIndex[globalIndex] === suggIdx;
-                              const mainName = feature.properties.name || "";
-                              const addressParts = [
-                                feature.properties.city,
-                                feature.properties.state,
-                                feature.properties.country
-                              ].filter((part: string | undefined): part is string =>
-                                Boolean(part && part !== mainName)
-                              );
-                              const subTitle = addressParts.join(", ");
-
-                              return (
-                                <div
-                                  key={`${globalIndex}-suggestion-${suggIdx}`}
-                                  onMouseDown={() => selectPlace(globalIndex, feature)}
-                                  className={`flex items-start gap-2 px-3 py-2 cursor-pointer transition-colors
-                                                                    ${isActive ? 'bg-indigo-50' : 'hover:bg-slate-50'}
-                                                                    border-b border-slate-100 last:border-b-0`}
-                                >
-                                  <FiMapPin className={`w-4 h-4 mt-0.5 ${isActive ? 'text-indigo-500' : 'text-slate-400'}`} />
-                                  <div className="flex-1 min-w-0">
-                                    <div className={`text-sm font-medium truncate ${isActive ? 'text-indigo-700' : 'text-slate-700'}`}>
-                                      {mainName}
-                                    </div>
-                                    <div className="text-xs text-slate-500 truncate">
-                                      {subTitle || "Location details unavailable"}
-                                    </div>
-                                  </div>
-                                  <span className="text-xs text-slate-400 flex-shrink-0">
-                                    {feature.properties.osm_value || 'place'}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
+                      <PlaceSearchInput
+                        value={localInputValues[globalIndex] !== undefined ? localInputValues[globalIndex] : (student.place || '')}
+                        onChange={(v) => setLocalInputValues(prev => ({ ...prev, [globalIndex]: v }))}
+                        onSelect={(result) => handlePlaceSelect(globalIndex, result)}
+                        onBlur={() => handlePlaceBlur(globalIndex)}
+                        status={student.locationStatus}
+                        placeholder="Type any location..."
+                      />
                     </td>
-                    <td className="px-4 py-3 text-xs">
-                      {typeof student.latitude === 'number' && typeof student.longitude === 'number' ? (
-                        <span className="font-mono text-slate-600">
-                          {student.latitude.toFixed(4)}, {student.longitude.toFixed(4)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
+
                     <td className="px-4 py-3 text-sm">
                       {student.locationStatus === 'verified' && (
                         <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
@@ -1700,7 +1426,7 @@ const StudentExcel = () => {
           );
 
           if (isNoMedication) {
-            console.log(`Student ${student.name}: "${medText}" → NO medication (contains "${noMedicationKeywords.find(k => medText.includes(k))}")`);
+
             students[i] = {
               ...student,
               medication: 'no',
@@ -1708,7 +1434,7 @@ const StudentExcel = () => {
               medicationStatus: 'verified'
             };
           } else {
-            console.log(`Student ${student.name}: "${medText}" → YES medication`);
+
             students[i] = {
               ...student,
               medication: 'yes',
@@ -1952,38 +1678,7 @@ const StudentExcel = () => {
       return null;
     };
 
-    // Format the student data for JSON display (excluding internal fields)
-    const getJsonData = () => {
-      return mappedStudents.map(student => {
-        // Parse coordinates properly
-        const latitude = parseCoordinate(student.latitude);
-        const longitude = parseCoordinate(student.longitude);
 
-        // If coordinates are invalid, set to empty string as per requirement
-        const finalLatitude = latitude !== null ? latitude : "";
-        const finalLongitude = longitude !== null ? longitude : "";
-
-        return {
-          id: 0,
-          name: student.name || '',
-          age: student.age || 0,
-          gender: student.gender || 'male',
-          place: student.place || '',
-          parentName: student.parentName || '',
-          contactNumber: student.contactNumber || '',
-          whatsappNumber: student.whatsappNumber || '',
-          churchName: student.churchName || 'No',
-          medication: student.medication || 'no',
-          medicalReport: student.medication === 'yes' ? (student.medicalReport || '') : '',
-          status: 'registered',
-          remark: student.remark || '',
-          staying: 'no',
-          age_group: '',
-          latitude: finalLatitude,
-          longitude: finalLongitude
-        };
-      });
-    };
 
     return (
       <div className="mb-6">
@@ -2184,7 +1879,7 @@ const StudentExcel = () => {
     }));
 
     try {
-      const apiUrl = 'https://localhost:7135/api/user/students/excel';
+      const apiUrl = `${API_BASE}/user/students/excel`;
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -2307,7 +2002,7 @@ const StudentExcel = () => {
                         </p>
                       ) : (
                         <p className="text-sm text-red-600 mt-1">
-                          Error: {result.error}
+                          {result.error}
                         </p>
                       )}
                     </div>
@@ -2342,15 +2037,21 @@ const StudentExcel = () => {
     );
   };
 
-  // Loading state
-  if (permissionLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
-        <StudentExcelSkeleton />
-      </div>
-    );
-  }
+  // Reset upload
+  const resetUpload = () => {
+    setCurrentStep('upload');
+    setFileName('');
+    setUploadError('');
+    setExcelData([]);
+    setExcelHeaders([]);
+    setColumnMapping([]);
+    setMappedStudents([]);
+    setValidationErrors([]);
+    setCurrentPage(1);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // Access denied state
   if (permissionError || accessDenied || !hasAdminAccess()) {
@@ -2361,9 +2062,42 @@ const StudentExcel = () => {
     );
   }
 
+  if (permissionLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+        <StickyHeader title="Student Excel Data Import" onBack={() => navigate('/user/student')}>
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiDownload /> Download Template
+          </button>
+        </StickyHeader>
+        <StudentExcelSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
+      <StickyHeader title="Student Excel Data Import" onBack={() => navigate('/user/student')}>
+        <div className="flex items-center gap-3">
+          {currentStep !== 'upload' && (
+            <button
+              onClick={resetUpload}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+            >
+              <FiRefreshCw /> New Upload
+            </button>
+          )}
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiDownload /> Download Template
+          </button>
+        </div>
+      </StickyHeader>
 
       <div className="max-w-7xl mx-auto px-4 mt-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

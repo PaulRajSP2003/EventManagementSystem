@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FiArrowLeft, FiChevronLeft, FiChevronRight,
+  FiChevronLeft, FiChevronRight,
   FiUser, FiUsers, FiHome, FiAlertTriangle, FiMessageSquare,
   FiGrid, FiUserCheck, FiUserX, FiDownload
 } from 'react-icons/fi';
@@ -11,6 +11,7 @@ import { studentAPI } from '../api/StudentData';
 import { leaderAPI } from '../api/LeaderData';
 import EmptyState from '../components/EmptyState';
 import AccessAlert from '../components/AccessAlert';
+import StickyHeader from '../components/StickyHeader';
 import { subGroupAPI, type GroupStructure } from '../api/SubGroupDataAPI';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
 
@@ -149,7 +150,7 @@ const MainGroupSkeleton = () => (
 );
 
 const SubGroupDetails = () => {
-  const { groupId = '' } = useParams<{ groupId: string }>();
+  const { groupId = '', subGroup = '' } = useParams<{ groupId: string, subGroup?: string }>();
   const navigate = useNavigate();
   const tabsRef = useRef<HTMLDivElement>(null);
   const [showMobileTabDropdown, setShowMobileTabDropdown] = useState(false);
@@ -328,7 +329,11 @@ const SubGroupDetails = () => {
           groupsWithOneLeader
         });
 
-        if (sorted.length > 0) setActiveTab(sorted[0]);
+        if (subGroup && sorted.includes(subGroup)) {
+          setActiveTab(subGroup);
+        } else if (sorted.length > 0) {
+          setActiveTab(sorted[0]);
+        }
 
       } catch (err) {
         console.error('Failed to load group data:', err);
@@ -352,6 +357,12 @@ const SubGroupDetails = () => {
     }
   }, [groupId, permissionData]);
 
+  // Sync active tab when URL subGroup param changes
+  useEffect(() => {
+    if (subGroup && subGroups.includes(subGroup)) {
+      setActiveTab(subGroup);
+    }
+  }, [subGroup, subGroups]);
 
   const getFilteredData = () => {
     if (!groupStructure || !activeTab) return { filteredStudents: [], filteredLeaders: [] };
@@ -626,7 +637,7 @@ God bless you.`;
 
     return (
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden mb-6 sm:mb-8">
-        <div className="p-4 sm:p-6 border-b border-slate-200 bg-white">
+        <div className="p-3 sm:p-6 border-b border-slate-200 bg-white">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4 flex-1 w-full sm:w-auto">
               <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center shadow-sm flex-shrink-0 ${noLeaders ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'
@@ -654,7 +665,7 @@ God bless you.`;
           </div>
         </div>
 
-        <div className="p-4 sm:p-6 bg-slate-50/30">
+        <div className="p-2 sm:p-6 bg-slate-50/30">
           <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
             {/* Leaders Column */}
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -668,7 +679,7 @@ God bless you.`;
                   {leadersHere.length}
                 </span>
               </div>
-              <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 max-h-[400px] overflow-y-auto">
+              <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
                 {leadersHere.length === 0 ? (
                   <div className="text-center py-6 sm:py-10">
                     <FiUser className="w-8 h-8 sm:w-10 sm:h-10 mx-auto opacity-20 mb-2 sm:mb-3" />
@@ -701,7 +712,7 @@ God bless you.`;
                     <p className="text-xs sm:text-sm text-slate-400">No students assigned</p>
                   </div>
                 ) : (
-                  studentsHere.map(s => <StudentCard key={s.id} student={s} />)
+                  studentsHere.map((s, index) => <StudentCard key={`${s.id}-${index}`} student={s} />)
                 )}
               </div>
             </div>
@@ -745,7 +756,7 @@ God bless you.`;
                 <button
                   key={tab}
                   onClick={() => {
-                    setActiveTab(tab);
+                    navigate(`/user/group/sub/${groupId}/${tab}`);
                     setShowMobileTabDropdown(false);
                   }}
                   className={`px-3 py-2.5 text-sm font-medium rounded-lg border ${bgColor} ${textColor} ${activeTab !== tab ? 'border-slate-200 hover:bg-slate-50' : 'border-transparent'
@@ -765,19 +776,7 @@ God bless you.`;
   if (permissionLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-3 sm:px-4 py-3 sm:py-4 border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3 sm:gap-6">
-              <button onClick={() => navigate('/user/dashboard')} className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium text-sm sm:text-base">
-                <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-base sm:text-lg font-bold text-slate-800 hidden sm:block">
-                Sub Group {groupId}
-              </h1>
-            </div>
-          </div>
-        </div>
+        <StickyHeader title={`Sub Group ${groupId}`} onBack={() => navigate('/user/dashboard')} />
         <MainGroupSkeleton />
       </div>
     );
@@ -804,19 +803,7 @@ God bless you.`;
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-3 sm:px-4 py-3 sm:py-4 border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3 sm:gap-6">
-              <button onClick={() => navigate('/user/dashboard')} className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium text-sm sm:text-base">
-                <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-base sm:text-lg font-bold text-slate-800 hidden sm:block">
-                Sub Group {groupId}
-              </h1>
-            </div>
-          </div>
-        </div>
+        <StickyHeader title={`Sub Group ${groupId}`} onBack={() => navigate('/user/dashboard')} />
         <MainGroupSkeleton />
       </div>
     );
@@ -825,19 +812,7 @@ God bless you.`;
   if (error || !groupStructure || subGroups.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-3 sm:px-4 py-3 sm:py-4 border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-3 sm:gap-6">
-              <button onClick={() => navigate('/user/dashboard')} className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium text-sm sm:text-base">
-                <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-base sm:text-lg font-bold text-slate-800 hidden sm:block capitalize">
-                Sub Group {groupId}
-              </h1>
-            </div>
-          </div>
-        </div>
+        <StickyHeader title={`Sub Group ${groupId}`} onBack={() => navigate('/user/dashboard')} />
         <div className="max-w-6xl mx-auto py-8 sm:py-10 px-3 sm:px-4 text-center text-slate-600">
           <EmptyState
             title="Sub Group Not Available"
@@ -851,49 +826,35 @@ God bless you.`;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-8 sm:pb-12">
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-3 sm:px-4 py-3 sm:py-4 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3 sm:gap-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-24 md:pb-8 sm:pb-12">
+      <StickyHeader title={`Sub Group ${groupId}`} onBack={() => navigate('/user/dashboard')}>
+        <div className="flex items-center gap-3">
+          {isAdminOrCoAdmin(permissionData) && (
             <button
-              onClick={() => navigate('/user/dashboard')}
-              className="flex items-center gap-1 sm:gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium text-sm sm:text-base"
+              onClick={handleDownload}
+              disabled={downloading}
+              className={"flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 transform active:scale-95 " + (downloading ? 'bg-green-400 cursor-not-allowed opacity-75' : 'bg-green-600 hover:bg-green-700 hover:shadow-md active:bg-green-800') + " disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"}
+              aria-label={downloading ? 'Downloading groups' : 'Download groups'}
             >
-              <FiArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" /> Back
+              <FiDownload className={"w-4 h-4 " + (downloading ? 'animate-bounce' : '')} />
+              <span>{downloading ? 'Downloading...' : 'Download'}</span>
             </button>
-            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-base sm:text-lg font-bold text-slate-800 hidden sm:block capitalize">
-              Sub Group {groupId}
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {isAdminOrCoAdmin(permissionData) && (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className={"flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all duration-200 transform active:scale-95 " + (downloading ? 'bg-green-400 cursor-not-allowed opacity-75' : 'bg-green-600 hover:bg-green-700 hover:shadow-md active:bg-green-800') + " disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"}
-                aria-label={downloading ? 'Downloading groups' : 'Download groups'}
-              >
-                <FiDownload className={"w-4 h-4 " + (downloading ? 'animate-bounce' : '')} />
-                <span>{downloading ? 'Downloading...' : 'Download'}</span>
-              </button>
-            )}
-            <div className="w-px h-6 bg-slate-200" aria-hidden="true" />
-            <div className="flex items-center gap-2 px-1">
-              <div className="p-1.5 bg-indigo-50 rounded-lg">
-                <FiGrid className="w-4 h-4 text-indigo-600" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold text-slate-800">
-                  {subGroups.length} Groups
-                </span>
-              </div>
+          )}
+          <div className="w-px h-6 bg-slate-200" aria-hidden="true" />
+          <div className="flex items-center gap-2 px-1">
+            <div className="p-1.5 bg-indigo-50 rounded-lg">
+              <FiGrid className="w-4 h-4 text-indigo-600" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-slate-800">
+                {subGroups.length} Groups
+              </span>
             </div>
           </div>
         </div>
-      </div>
+      </StickyHeader>
 
-      <div className="max-w-6xl mx-auto py-4 sm:py-6 px-3 sm:px-4 lg:px-8 space-y-4 sm:space-y-6">
+      <div className="max-w-6xl mx-auto py-4 sm:py-6 px-0 md:px-4 lg:px-8 space-y-4 sm:space-y-6">
         {/* Analytics Dashboard */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <AnalyticsCard
@@ -970,7 +931,7 @@ God bless you.`;
               return (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => navigate(`/user/group/sub/${groupId}/${tab}`)}
                   className={`px-4 sm:px-5 py-2 sm:py-2.5 font-medium text-xs sm:text-sm whitespace-nowrap rounded-lg transition-all flex items-center border min-w-[80px] sm:min-w-[100px] justify-center ${tabClass}`}
                 >
                   <FiUser className="mr-1 sm:mr-1.5 w-3 h-3 sm:w-4 sm:h-4" /> {tab}

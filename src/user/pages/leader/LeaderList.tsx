@@ -1,8 +1,8 @@
 // src/user/pages/leader/LeaderList.tsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-  FiArrowLeft, FiPlus, FiSearch, FiFilter,
+  FiPlus, FiSearch, FiFilter,
   FiChevronUp, FiChevronDown,
   FiDownload,
   FiLoader,
@@ -12,7 +12,7 @@ import {
 import { leaderAPI } from '../api/LeaderData';
 import type { Leader } from '../../../types';
 import { PAGE_PERMISSIONS, isAdminOrCoAdmin, canAccess, fetchPermissionData, type PermissionData } from '../permission';
-import AccessAlert from '../components/AccessAlert';
+import { StickyHeader, AccessAlert } from '../components';
 import SignalRService from '../../Services/signalRService';
 
 // Permission constant for this page
@@ -43,17 +43,21 @@ type SortConfig = {
   direction: 'asc' | 'desc';
 };
 
-const LeaderListSkeleton = () => (
-  <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6 animate-pulse">
-    <div className="h-20 bg-white rounded-xl border border-slate-200 shadow-sm"></div>
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="h-12 bg-slate-50 border-b border-slate-200"></div>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="h-16 border-b border-slate-100 mx-4"></div>
-      ))}
+const LeaderListSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
+      <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-8 space-y-6 animate-pulse">
+        <div className="h-20 bg-white rounded-xl border border-slate-200"></div>
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="h-12 bg-slate-50 border-b border-slate-200"></div>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 border-b border-slate-100 mx-4"></div>
+          ))}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const LeaderList = () => {
   const navigate = useNavigate();
@@ -70,7 +74,17 @@ const LeaderList = () => {
   // Open filter bar if gender filter is set from localStorage
   const [showFilters, setShowFilters] = useState(() => {
     try {
-      return !!localStorage.getItem('leaderListGender');
+      const localData = localStorage.getItem('leaderList');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        return !!(parsed.gender || parsed.status);
+      }
+      const sessionData = sessionStorage.getItem('leaderList');
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        return !!(parsed.gender || parsed.status || parsed.place);
+      }
+      return false;
     } catch {
       return false;
     }
@@ -78,18 +92,27 @@ const LeaderList = () => {
 
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'id', direction: 'desc' });
   const [filters, setFilters] = useState<FilterType>(() => {
-    // Try to load gender filter from localStorage
     let gender = '';
+    let status = '';
+    let place = '';
     try {
-      gender = localStorage.getItem('leaderListGender') || '';
+      const localData = localStorage.getItem('leaderList');
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        gender = parsed.gender || '';
+        status = parsed.status || '';
+      }
+      const sessionData = sessionStorage.getItem('leaderList');
+      if (sessionData) {
+        const parsed = JSON.parse(sessionData);
+        if (parsed.gender) gender = parsed.gender;
+        if (parsed.status) status = parsed.status;
+        place = parsed.place || '';
+      }
     } catch { }
-    return { id: '', name: '', gender, contactNumber: '', place: '', status: '', type: '' };
+    return { id: '', name: '', gender, contactNumber: '', place, status, type: '' };
   });
 
-  const uniqueTypes = useMemo(() =>
-    Array.from(new Set(leaders.map((l) => l.type).filter(Boolean))).sort(),
-    [leaders]
-  );
 
   // Download CSV for leaders
   const downloadCSV = async () => {
@@ -111,6 +134,7 @@ const LeaderList = () => {
           try {
             const newLeader = await leaderAPI.getById(notification.leader.leaderId);
             setLeaders(prevLeaders => {
+              if (prevLeaders.some(l => l.id === newLeader.id)) return prevLeaders;
               const transformedLeader = {
                 ...newLeader,
                 registered_mode: newLeader.registered_mode || 'offline',
@@ -251,7 +275,9 @@ const LeaderList = () => {
           whatsappNumber: leader.whatsappNumber || leader.contactNumber || '',
         }));
 
-        setLeaders(transformedLeaders);
+        // Remove duplicates if any
+        const uniqueLeaders = Array.from(new Map(transformedLeaders.map(l => [l.id, l])).values());
+        setLeaders(uniqueLeaders);
         setErrorMessage(null);
       } catch (err: any) {
         console.error('Failed to fetch leaders:', err);
@@ -412,7 +438,8 @@ const LeaderList = () => {
     setSearchTerm('');
     setSortConfig({ key: 'id', direction: 'desc' });
     try {
-      localStorage.removeItem('leaderListGender');
+      localStorage.removeItem('leaderList');
+      sessionStorage.removeItem('leaderList');
     } catch { }
   };
 
@@ -442,84 +469,67 @@ const LeaderList = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      {/* Sticky Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 sm:via-white via-slate-50 to-slate-50 pb-12">
+      <StickyHeader title="Leader Management" onBack={() => navigate('/user/dashboard')}>
+        <div className="flex items-center gap-3">
+          {/* Download CSV Button */}
+          {isAdminOrCoAdmin(permissionData) && (
             <button
-              onClick={() => navigate('/user/dashboard')}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              <FiArrowLeft /> Back
-            </button>
-            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-              Leader Management
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Download CSV Button */}
-            {isAdminOrCoAdmin(permissionData) && (
-              <button
-                onClick={downloadCSV}
-                disabled={downloading || leaders.length === 0}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm ${
-                  downloading
-                    ? 'bg-green-400 text-white cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700 hover:shadow'
+              onClick={downloadCSV}
+              disabled={downloading || leaders.length === 0}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${downloading
+                ? 'bg-green-400 text-white cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
-                title={leaders.length === 0 ? "No data to export" : "Download as CSV"}
-              >
-                {downloading ? (
-                  <>
-                    <FiLoader className="animate-spin" /> Downloading...
-                  </>
-                ) : (
-                  <>
-                    <FiDownload /> Export CSV
-                  </>
-                )}
-              </button>
-            )}
-
-            {/* New Leader button */}
-            <Link
-              to={canCreateLeader() ? "/user/leader/new" : "#"}
-              onClick={(e) => {
-                if (!canCreateLeader()) {
-                  e.preventDefault();
-                  alert("You don't have permission to create new leaders");
-                }
-              }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm ${
-                canCreateLeader()
-                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
-                  : 'bg-slate-300 text-white cursor-not-allowed opacity-50'
-              }`}
+              title={leaders.length === 0 ? "No data to export" : "Download as CSV"}
             >
-              <FiPlus /> New Leader
-            </Link>
-          </div>
+              {downloading ? (
+                <>
+                  <FiLoader className="animate-spin" /> Downloading...
+                </>
+              ) : (
+                <>
+                  <FiDownload /> Export CSV
+                </>
+              )}
+            </button>
+          )}
+
+          {/* New Leader button */}
+          <Link
+            to={canCreateLeader() ? "/user/leader/new" : "#"}
+            onClick={(e) => {
+              if (!canCreateLeader()) {
+                e.preventDefault();
+                alert("You don't have permission to create new leaders");
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${canCreateLeader()
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer'
+              : 'bg-slate-300 text-white cursor-not-allowed opacity-50'
+              }`}
+          >
+            <FiPlus /> New Leader
+          </Link>
         </div>
-      </div>
+      </StickyHeader>
 
       {loading ? (
         <LeaderListSkeleton />
       ) : (
-        <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6">
+        <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-8 space-y-6">
           {/* Search & Filter Bar */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-50 bg-white">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="rounded-xl border border-slate-200 overflow-hidden bg-white dark:bg-slate-800">
+            <div className="p-4 border-b border-slate-50">
+              <div className="flex flex-row items-center justify-between gap-2 sm:gap-4">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <FiSearch className="text-slate-400" />
                   </div>
                   <input
                     type="text"
-                    placeholder="Search by name, place, contact or ID..."
-                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
+                    placeholder="Search..."
+                    className="pl-10 pr-4 py-2 w-full border border-slate-200 rounded-lg sm:bg-slate-50 bg-transparent text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -535,14 +545,13 @@ const LeaderList = () => {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
-                      showFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                    }`}
+                    className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all border ${showFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'sm:bg-white bg-transparent border-slate-300 text-slate-700 hover:bg-slate-50'
+                      }`}
                   >
-                    <FiFilter /> Filters
+                    <FiFilter /> <span className="hidden xs:inline">Filters</span>
                   </button>
                   {(searchTerm || Object.values(filters).some(v => v) || sortConfig.key !== 'id' || sortConfig.direction !== 'desc') && (
-                    <button onClick={clearFilters} className="text-xs text-slate-500 hover:text-red-600 font-semibold px-2 transition-colors">
+                    <button onClick={clearFilters} className="text-xs text-slate-500 hover:text-red-600 font-semibold px-1 sm:px-2 transition-colors">
                       Reset
                     </button>
                   )}
@@ -551,103 +560,198 @@ const LeaderList = () => {
             </div>
 
             {showFilters && (
-              <div className="p-4 bg-slate-50/50 grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-4 border-b border-slate-100">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">ID</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder=""
-                    value={filters.id}
-                    onChange={(e) => setFilters(p => ({ ...p, id: e.target.value }))}
-                  />
+              <div className="p-3 border-b border-slate-100">
+                {/* Desktop View: Grid */}
+                <div className="hidden sm:grid grid-cols-4 lg:grid-cols-7 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">ID</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.id}
+                      onChange={(e) => setFilters(p => ({ ...p, id: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Name</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.name}
+                      onChange={(e) => setFilters(p => ({ ...p, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Gender</label>
+                    <select
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.gender}
+                      onChange={(e) => {
+                        const newGender = e.target.value;
+                        setFilters(p => {
+                          const newFilters = { ...p, gender: newGender };
+                          try {
+                            localStorage.setItem('leaderList', JSON.stringify({ gender: newGender, status: newFilters.status }));
+                            sessionStorage.setItem('leaderList', JSON.stringify({ gender: newGender, status: newFilters.status, place: newFilters.place }));
+                          } catch { }
+                          return newFilters;
+                        });
+                      }}
+                    >
+                      <option value="">All</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Contact</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.contactNumber}
+                      onChange={(e) => setFilters(p => ({ ...p, contactNumber: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Place</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.place}
+                      onChange={(e) => {
+                        const newPlace = e.target.value;
+                        setFilters(p => {
+                          const newFilters = { ...p, place: newPlace };
+                          try {
+                            sessionStorage.setItem('leaderList', JSON.stringify({ gender: newFilters.gender, status: newFilters.status, place: newPlace }));
+                          } catch { }
+                          return newFilters;
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
+                    <select
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.status}
+                      onChange={(e) => {
+                        const newStatus = e.target.value;
+                        setFilters(p => {
+                          const newFilters = { ...p, status: newStatus };
+                          try {
+                            localStorage.setItem('leaderList', JSON.stringify({ gender: newFilters.gender, status: newStatus }));
+                            sessionStorage.setItem('leaderList', JSON.stringify({ gender: newFilters.gender, status: newStatus, place: newFilters.place }));
+                          } catch { }
+                          return newFilters;
+                        });
+                      }}
+                    >
+                      <option value="">All</option>
+                      <option value="registered">Registered</option>
+                      <option value="present">Present</option>
+                      <option value="absent">Absent</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-400">Type</label>
+                    <select
+                      className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
+                      value={filters.type}
+                      onChange={(e) => setFilters(p => ({ ...p, type: e.target.value }))}
+                    >
+                      <option value="">All</option>
+                      <option value="leader1">Leader 1</option>
+                      <option value="leader2">Leader 2</option>
+                      <option value="participant">Participant</option>
+                      <option value="guest">Guest</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder=""
-                    value={filters.name}
-                    onChange={(e) => setFilters(p => ({ ...p, name: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Gender</label>
-                  <select
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={filters.gender}
-                    onChange={(e) => {
-                      setFilters(p => ({ ...p, gender: e.target.value }));
-                      try {
-                        localStorage.setItem('leaderListGender', e.target.value);
-                      } catch { }
-                    }}
-                  >
-                    <option value="">All</option>
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Contact</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder=""
-                    value={filters.contactNumber}
-                    onChange={(e) => setFilters(p => ({ ...p, contactNumber: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Place</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder=""
-                    value={filters.place}
-                    onChange={(e) => setFilters(p => ({ ...p, place: e.target.value }))}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
-                  <select
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={filters.status}
-                    onChange={(e) => setFilters(p => ({ ...p, status: e.target.value }))}
-                  >
-                    <option value="">All</option>
-                    <option value="registered">Registered</option>
-                    <option value="present">Present</option>
-                    <option value="absent">Absent</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-400">Type</label>
-                  <select
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500"
-                    value={filters.type}
-                    onChange={(e) => setFilters(p => ({ ...p, type: e.target.value }))}
-                  >
-                    <option value="">All</option>
-                    <option value="leader1">Leader 1</option>
-                    <option value="leader2">Leader 2</option>
-                    <option value="participant">Participant</option>
-                    <option value="guest">Guest</option>
-                  </select>
+                {/* Mobile View: Rows */}
+                <div className="sm:hidden space-y-3">
+                  {/* Line One: ID, Gender */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">ID</label>
+                      <input
+                        type="text"
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.id}
+                        onChange={(e) => setFilters(p => ({ ...p, id: e.target.value }))}
+                      />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Gender</label>
+                      <select
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.gender}
+                        onChange={(e) => {
+                          const newGender = e.target.value;
+                          setFilters(p => {
+                            const newFilters = { ...p, gender: newGender };
+                            try {
+                              localStorage.setItem('leaderList', JSON.stringify({ gender: newGender, status: newFilters.status }));
+                              sessionStorage.setItem('leaderList', JSON.stringify({ gender: newGender, status: newFilters.status, place: newFilters.place }));
+                            } catch { }
+                            return newFilters;
+                          });
+                        }}
+                      >
+                        <option value="">All</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                      </select>
+                    </div>
+                  </div>
+                  {/* Line Two: Status, Type */}
+                  <div className="flex gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Status</label>
+                      <select
+                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.status}
+                        onChange={(e) => {
+                          const newStatus = e.target.value;
+                          setFilters(p => {
+                            const newFilters = { ...p, status: newStatus };
+                            try {
+                              localStorage.setItem('leaderList', JSON.stringify({ gender: newFilters.gender, status: newStatus }));
+                              sessionStorage.setItem('leaderList', JSON.stringify({ gender: newFilters.gender, status: newStatus, place: newFilters.place }));
+                            } catch { }
+                            return newFilters;
+                          });
+                        }}
+                      >
+                        <option value="">All</option>
+                        <option value="registered">Registered</option>
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                      </select>
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400">Type</label>
+                      <select
+                        className="w-full px-2 py-1.5 border border-slate-200 rounded-md text-sm outline-none focus:ring-1 focus:ring-indigo-500 bg-transparent"
+                        value={filters.type}
+                        onChange={(e) => setFilters(p => ({ ...p, type: e.target.value }))}
+                      >
+                        <option value="">All</option>
+                        <option value="leader1">Leader 1</option>
+                        <option value="leader2">Leader 2</option>
+                        <option value="guest">Guest</option>
+                        <option value="participant">Participant</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Table Container */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          {/* Table Container - Desktop View */}
+          <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50/80 border-b border-slate-200">
@@ -702,27 +806,25 @@ const LeaderList = () => {
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">{leader.contactNumber}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center justify-center w-28 py-1 text-[10px] uppercase font-bold rounded-full border ${
-                          leader.type === 'guest'
-                            ? 'bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-800 border-indigo-200'
-                            : leader.type === 'leader1' || leader.type === 'leader2'
-                              ? 'bg-gradient-to-r from-teal-100 to-teal-200 text-teal-800 border-teal-200'
-                              : leader.type === 'participant'
-                                ? 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 border-amber-200'
-                                : 'bg-slate-100 text-slate-700 border-slate-200'
-                        }`}>
+                        <span className={`inline-flex items-center justify-center w-28 py-1 text-[10px] uppercase font-bold rounded-full border ${leader.type === 'guest'
+                          ? 'bg-gradient-to-r from-indigo-100 to-indigo-200 text-indigo-800 border-indigo-200'
+                          : leader.type === 'leader1' || leader.type === 'leader2'
+                            ? 'bg-gradient-to-r from-teal-100 to-teal-200 text-teal-800 border-teal-200'
+                            : leader.type === 'participant'
+                              ? 'bg-gradient-to-r from-amber-100 to-amber-200 text-amber-800 border-amber-200'
+                              : 'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}>
                           {formatLeaderType(leader.type)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600 capitalize">{leader.place}</td>
                       <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center justify-center w-24 py-1 text-[10px] uppercase font-bold rounded-full border ${
-                          leader.status === 'present'
-                            ? 'bg-green-50 text-green-700 border-green-100'
-                            : leader.status === 'registered'
-                              ? 'bg-amber-50 text-amber-700 border-amber-100'
-                              : 'bg-red-50 text-red-700 border-red-100'
-                        }`}>
+                        <span className={`inline-flex items-center justify-center w-24 py-1 text-[10px] uppercase font-bold rounded-full border ${leader.status === 'present'
+                          ? 'bg-green-50 text-green-700 border-green-100'
+                          : leader.status === 'registered'
+                            ? 'bg-amber-50 text-amber-700 border-amber-100'
+                            : 'bg-red-50 text-red-700 border-red-100'
+                          }`}>
                           {leader.status}
                         </span>
                       </td>
@@ -736,6 +838,63 @@ const LeaderList = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Card View - Mobile View */}
+          <div className="sm:hidden space-y-4">
+            {filteredLeaders.map((leader) => (
+              <div
+                key={leader.id || `leader-mobile-${Math.random()}`}
+                onClick={() => navigate(`/user/leader/${leader.id}`)}
+                className="rounded-xl border border-slate-200 overflow-hidden p-4 shadow-sm bg-white dark:bg-slate-800"
+              >
+                <div className="flex gap-4">
+                  {/* Details Cell */}
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-400 uppercase">Details</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${leader.status === 'present'
+                        ? 'bg-green-50 text-green-700 border-green-100'
+                        : leader.status === 'registered'
+                          ? 'bg-amber-50 text-amber-700 border-amber-100'
+                          : 'bg-red-50 text-red-700 border-red-100'
+                        }`}>
+                        {leader.status.toUpperCase()}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-1">
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Name:</span>
+                        <span className="text-xs font-bold text-slate-800 capitalize">{leader.name}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Gender:</span>
+                        <span className="text-xs text-slate-700 capitalize">{leader.gender}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Place:</span>
+                        <span className="text-xs text-slate-700 capitalize">{leader.place}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Type:</span>
+                        <span className="text-xs text-indigo-600 font-bold capitalize">{leader.type}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-xs font-semibold text-slate-500 w-16">Status:</span>
+                        <span className="text-xs text-slate-700 capitalize">{leader.status}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+            {filteredLeaders.length === 0 && (
+              <div className="py-8 text-center text-slate-400 text-sm bg-white rounded-xl border border-dashed border-slate-300">
+                No leaders found matching your criteria.
+              </div>
+            )}
           </div>
           <div className="text-xs text-slate-400 px-2">
             Showing {filteredLeaders.length} of {leaders.length} total leaders

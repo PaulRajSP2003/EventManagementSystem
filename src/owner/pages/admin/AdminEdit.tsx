@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiSave, FiInfo, FiCalendar } from 'react-icons/fi';
+import { FiSave, FiInfo, FiCalendar } from 'react-icons/fi';
 import { adminAPI } from '../../api/AdminData';
 import { eventAPI } from '../../api/EventData';
 import type { Admin, Event } from '../../../types';
 import OwnerLayout from '../components/OwnerLayout';
 import EventListCompound from '../components/EventListCompound';
+import StickyHeader from '../components/StickyHeader';
 
 const AdminEditSkeleton = () => (
   <div className="min-h-screen bg-slate-50 pb-12">
@@ -205,29 +206,17 @@ export default function AdminEdit() {
     return (
       <OwnerLayout>
         <div className="min-h-screen bg-slate-50 pb-12">
-          <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-            <div className="max-w-6xl mx-auto flex justify-between items-center">
-              <div className="flex items-center gap-6">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group"
-                >
-                  <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                  Back
-                </button>
-                <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block" />
-                <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                  Edit Admin
-                </h1>
-              </div>
-              <button
-                onClick={() => navigate('/owner/admin')}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-              >
-                <FiCalendar /> View List
-              </button>
-            </div>
-          </div>
+          <StickyHeader 
+            title="Edit Admin"
+            onBack={() => navigate(-1)}
+          >
+            <button
+              onClick={() => navigate('/owner/admin')}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+            >
+              <FiCalendar /> View List
+            </button>
+          </StickyHeader>
 
           <AdminEditSkeleton />
         </div>
@@ -251,37 +240,25 @@ export default function AdminEdit() {
     <OwnerLayout>
       <div className="min-h-screen bg-slate-50 pb-12">
         {/* Sticky Header */}
-        <div className="bg-transparent backdrop-blur-md sticky top-0 z-10 px-4 py-3 border-b border-white/20">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium group"
-              >
-                <FiArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-                Back
-              </button>
-              <div className="h-4 w-[1px] bg-slate-300/50 hidden sm:block" />
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Edit Admin
-              </h1>
-            </div>
-            <button
-              onClick={() => navigate('/owner/admin')}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
-            >
-              <FiCalendar /> View List
-            </button>
-          </div>
-        </div>
+        <StickyHeader 
+          title="Edit Admin"
+          onBack={() => navigate(-1)}
+        >
+          <button
+            onClick={() => navigate('/owner/admin')}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg transition text-sm font-medium"
+          >
+            <FiCalendar /> View List
+          </button>
+        </StickyHeader>
 
         <div className="max-w-6xl mx-auto px-4 mt-8">
           <div className="lg:max-w-4xl mx-auto">
             <form
               onSubmit={handleSubmit}
-              className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden"
+              className="bg-white rounded-xl shadow-sm border border-slate-200"
             >
-              <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6">
+              <div className="p-6 border-b border-slate-100 flex items-start justify-between gap-6 rounded-t-xl">
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">Edit Admin</h2>
                   <p className="text-slate-600 text-sm mt-1">
@@ -451,7 +428,7 @@ export default function AdminEdit() {
                 </div>
               </div>
 
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 rounded-b-xl">
                 <button
                   type="button"
                   onClick={() => navigate('/owner/admin')}

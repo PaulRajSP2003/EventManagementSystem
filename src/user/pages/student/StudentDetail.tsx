@@ -1,9 +1,8 @@
 // src/user/pages/student/StudentDetail.tsx
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   FiEdit,
-  FiArrowLeft,
   FiUser,
   FiPhone,
   FiMapPin,
@@ -24,7 +23,7 @@ import LeaderListCompound from '../components/LeaderListCompound';
 import { leaderAPI } from '../api/LeaderData';
 import EmptyState from '../components/EmptyState';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
-import AccessAlert from '../components/AccessAlert';
+import { StickyHeader, AccessAlert } from '../components';
 import { studentAPI } from '../api/StudentData';
 
 // Helper component for section headers
@@ -37,8 +36,8 @@ const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
 
 // Helper component for data display
 const InfoItem = ({ icon: Icon, label, value, color = 'text-gray-500', onClick }: any) => (
-  <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
-    <div className={`p-2 rounded-full bg-white shadow-sm border border-gray-100 ${color} group-hover:scale-110 transition-transform`}>
+  <div className="flex items-start gap-2.5 sm:gap-3 p-2.5 sm:p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+    <div className={`p-2 rounded-full bg-white border border-gray-100 ${color} group-hover:scale-110 transition-transform`}>
       <Icon className="text-lg" />
     </div>
     <div className="flex-1">
@@ -64,11 +63,11 @@ const SkeletonBlock = ({ className = "" }: { className?: string }) => (
 
 const StudentDetailSkeleton = () => {
   return (
-    <div className="max-w-6xl mx-auto px-4 mt-6">
+    <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT COLUMN */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             <SkeletonBlock className="h-32 w-full rounded-none" />
             <div className="px-6 pb-6 text-center -mt-12">
               <div className="inline-block p-1 bg-white rounded-full">
@@ -83,7 +82,7 @@ const StudentDetailSkeleton = () => {
               </div>
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
             <SkeletonBlock className="h-5 w-36" />
             <div className="space-y-3">
               <SkeletonBlock className="h-10 w-full rounded-lg" />
@@ -91,7 +90,7 @@ const StudentDetailSkeleton = () => {
               <SkeletonBlock className="h-11 w-full rounded-lg" />
             </div>
           </div>
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
             <SkeletonBlock className="h-5 w-32" />
             <SkeletonBlock className="h-14 w-full rounded-xl" />
             <SkeletonBlock className="h-14 w-full rounded-xl" />
@@ -99,7 +98,7 @@ const StudentDetailSkeleton = () => {
         </div>
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-8 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 space-y-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <SkeletonBlock className="h-5 w-5 rounded-full" />
@@ -157,7 +156,7 @@ const StudentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Permission data state (like StudentList)
   const [permissionData, setPermissionData] = useState<PermissionData | null>(null);
   const [permissionLoading, setPermissionLoading] = useState(true);
@@ -181,6 +180,9 @@ const StudentDetail = () => {
   const [stayingLeader, setStayingLeader] = useState<string>('');
   const [showAlert, setShowAlert] = useState(false);
 
+  // Track first load to prevent flashing
+  const isFirstLoad = useRef(true);
+
   // Fetch permission data on component mount (like StudentList)
   useEffect(() => {
     const loadPermissions = async () => {
@@ -189,11 +191,11 @@ const StudentDetail = () => {
         setPermissionError(false);
         const data = await fetchPermissionData();
         setPermissionData(data);
-        
+
         // Check access using canAccess directly with permission data
         const hasAccess = canAccess(data, PAGE_ID);
         setAccessDenied(!hasAccess);
-        
+
         if (!hasAccess) {
           setErrorMessage("You don't have permission to view this student");
         }
@@ -202,7 +204,7 @@ const StudentDetail = () => {
         setPermissionData(null);
         setPermissionError(true);
         setAccessDenied(true);
-        
+
         // Check for 403 Forbidden error
         if (error.message === 'Forbidden' || error.message?.includes('403')) {
           setErrorMessage("Access Forbidden: You don't have permission to access this resource");
@@ -331,6 +333,9 @@ const StudentDetail = () => {
         }
       } finally {
         setLoading(false);
+        if (isFirstLoad.current) {
+          isFirstLoad.current = false;
+        }
       }
     };
 
@@ -362,7 +367,7 @@ const StudentDetail = () => {
   }, [location.state, status]);
 
   const isDirty = useMemo(() => {
-    if (!originalData || !student) return false;
+    if (!originalData || !student || loading || isFirstLoad.current) return false;
 
     const origStatus = originalData.status?.toLowerCase() || '';
     const currentStatus = status.toLowerCase();
@@ -530,25 +535,11 @@ const StudentDetail = () => {
   if (permissionLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-              >
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Student Details
-              </h1>
-            </div>
-            <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
-              <FiEdit /> Edit Profile
-            </button>
-          </div>
-        </div>
+        <StickyHeader title="Student Details" onBack={() => navigate(-1)}>
+          <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
+            <FiEdit /> Edit Profile
+          </button>
+        </StickyHeader>
         <StudentDetailSkeleton />
       </div>
     );
@@ -566,25 +557,11 @@ const StudentDetail = () => {
   if (notFound || !student) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-              >
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-                Student Details
-              </h1>
-            </div>
-            <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
-              <FiEdit /> Edit Profile
-            </button>
-          </div>
-        </div>
+        <StickyHeader title="Student Details" onBack={() => navigate(-1)}>
+          <button disabled className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition border bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70">
+            <FiEdit /> Edit Profile
+          </button>
+        </StickyHeader>
         <div className="max-w-6xl mx-auto py-16 px-4 flex justify-center">
           <EmptyState
             title="Student Not Found"
@@ -599,61 +576,45 @@ const StudentDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-            >
-              <FiArrowLeft /> Back
-            </button>
-            <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-              Student Details
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative group">
-              <button
-                onClick={() => {
-                  if (student?.status === 'registered' && hasEditPermission()) {
-                    navigate(`/user/student/edit/${student.id}`);
-                  } else {
-                    handleDisabledEditClick();
-                  }
-                }}
-                className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${student?.status === 'registered' && hasEditPermission()
-                  ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
-                  : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
-                  }`}
-              >
-                <FiEdit />
-                Edit Profile
-              </button>
-              {/* Tooltip - only shows when button is disabled */}
-              {!(student?.status === 'registered' && hasEditPermission()) && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
-                  {!hasEditPermission()
-                    ? 'Editing Disabled'
-                    : 'Only status "Registered" students can be edited.'}
-                </div>
-              )}
+      <StickyHeader title="Student Details" onBack={() => navigate(-1)}>
+        <div className="relative group">
+          <button
+            onClick={() => {
+              if (student?.status === 'registered' && hasEditPermission()) {
+                navigate(`/user/student/edit/${student.id}`);
+              } else {
+                handleDisabledEditClick();
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${student?.status === 'registered' && hasEditPermission()
+              ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+              : 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+          >
+            <FiEdit />
+            Edit Profile
+          </button>
+          {/* Tooltip - only shows when button is disabled */}
+          {!(student?.status === 'registered' && hasEditPermission()) && (
+            <div className="absolute top-full right-0 mt-2 w-48 bg-slate-800 text-white text-[11px] p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none">
+              {!hasEditPermission()
+                ? 'Editing Disabled'
+                : 'Only status "Registered" students can be edited.'}
             </div>
-          </div>
+          )}
         </div>
-      </div>
+      </StickyHeader>
 
-      <div className="max-w-6xl mx-auto px-4 mt-6">
+      <div className="max-w-6xl mx-auto px-4 mt-2 sm:mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* LEFT COLUMN */}
           <div className="space-y-6">
             {/* Profile Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden relative">
               <div className="h-32 bg-gradient-to-r from-indigo-600 to-violet-600"></div>
               <div className="px-6 pb-6 text-center -mt-12 relative">
                 <div
-                  className="w-24 h-24 mx-auto bg-white p-1 rounded-full shadow-lg relative z-10"
+                  className="w-24 h-24 mx-auto bg-white p-1 rounded-full relative z-10"
                   style={{ border: `4px solid ${student.tagColor || '#6366f1'}` }}
                 >
                   <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-indigo-600">
@@ -688,12 +649,12 @@ const StudentDetail = () => {
             </div>
 
             {isAdmin() && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
                 {/* Buttons Row */}
                 <div className="flex gap-3">
                   <button
                     onClick={() => navigate(`/user/student/history/${student.id}`)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
+                    className="flex-1 hidden sm:flex items-center justify-center gap-2 px-4 py-2 border border-blue-200 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition"
                   >
                     <FiClock /> History
                   </button>
@@ -710,7 +671,7 @@ const StudentDetail = () => {
 
             {/* Admin Actions Card - Only show if user has ACTION_ID permission */}
             {hasActionAccess() && (
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-5 gap-3">
                   <h3 className="font-bold text-slate-800 flex items-center gap-2">
                     <FiActivity className="text-indigo-500" /> Actions
@@ -786,7 +747,7 @@ const StudentDetail = () => {
                         <span className={`text-sm font-medium ${!canStayWithParent && 'text-gray-400'}`}>With Parent</span>
                       </label>
                       {!isAgeQualified && (
-                        <div className="absolute -top-2 -right-2 bg-slate-800 text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute -top-2 -right-2 bg-slate-800 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
                           Only students under {student.parental_age} years can stay with parents
                         </div>
                       )}
@@ -819,9 +780,9 @@ const StudentDetail = () => {
                   <button
                     onClick={handleSave}
                     disabled={!isDirty || !isSelectionValid || isSaving || !hasActionAccess()}
-                    className={`w-full mt-3 font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition shadow-lg ${isDirty && isSelectionValid && !isSaving && hasActionAccess()
-                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200'
-                      : 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                    className={`w-full mt-3 font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 transition ${isDirty && isSelectionValid && !isSaving && hasActionAccess()
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                       }`}
                   >
                     <FiSave className="w-4 h-4" />
@@ -836,7 +797,7 @@ const StudentDetail = () => {
             )}
 
             {/* Quick Contact */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h3 className="font-bold text-slate-800 mb-4">Quick Contact</h3>
               <div className="space-y-3">
                 <a href={`tel:${student.contactNumber}`} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition">

@@ -5,12 +5,18 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
+    allowedHosts: true,
     proxy: {
       '/api': {
-        target: 'https://localhost:7135',
+        target: 'https://camp-api-prod-d8aqdmbfhqe9bpac.centralindia-01.azurewebsites.net',
         changeOrigin: true,
-        secure: false, // Allow self-signed certs
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        secure: false,
+      },
+      '/notificationHub': {
+        target: 'https://camp-api-prod-d8aqdmbfhqe9bpac.centralindia-01.azurewebsites.net',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
       }
     }
   }

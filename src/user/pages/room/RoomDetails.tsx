@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
-  FiArrowLeft,
   FiUsers,
   FiUser,
   FiSearch,
@@ -25,6 +24,8 @@ import RoomKeyHandler from './compounds/RoomKeyHandler';
 import RoomLeaderAssign from './compounds/RoomLeaderAssign';
 import { PAGE_PERMISSIONS, canAccess, isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
 import AccessAlert from '../components/AccessAlert';
+import StickyHeader from '../components/StickyHeader';
+import MobileRoomDetailView from '../../MobileLayout/MobileRoomDetailView';
 
 // Types
 type FloorKeys = keyof Omit<RoomData['male'], 'waitingList'>;
@@ -145,6 +146,15 @@ const RoomSkeleton = () => (
 
 const RoomDetails: React.FC = () => {
   const [downloadingRoom, setDownloadingRoom] = useState(false);
+
+  // Mobile Support
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const handleDownloadRoom = async () => {
     setDownloadingRoom(true);
     try {
@@ -553,56 +563,56 @@ const RoomDetails: React.FC = () => {
     const isOverfilled = currentStrength > room.roomCapacity;
 
     return (
-      <div key={room.roomId} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mb-8">
-        <div className="p-6 border-b border-slate-200 bg-white">
+      <div key={room.roomId} className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${isMobile ? 'mb-4' : 'mb-8'}`}>
+        <div className={`${isMobile ? 'p-4' : 'p-6'} border-b border-slate-200 bg-white`}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div
-                className={`h-12 w-12 rounded-lg flex items-center justify-center shadow-sm ${hasNoLeaders(room) ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'
+                className={`${isMobile ? 'h-10 w-10' : 'h-12 w-12'} rounded-lg flex items-center justify-center shadow-sm ${hasNoLeaders(room) ? 'bg-red-100 text-red-600' : 'bg-indigo-100 text-indigo-600'
                   }`}
               >
-                <FiHome className="w-6 h-6" />
+                <FiHome className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'}`} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Room {room.roomName}</h2>
+                  <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-slate-800 tracking-tight`}>Room {room.roomName}</h2>
                   {hasNoLeaders(room) && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200 uppercase">
-                      <FiAlertTriangle className="mr-1 w-3 h-3" /> No Leader
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold bg-red-100 text-red-700 border border-red-200 uppercase">
+                      <FiAlertTriangle className="mr-1 w-2.5 h-2.5" /> No Leader
                     </span>
                   )}
                 </div>
-                <p className="text-slate-500 text-sm mt-0.5 capitalize">Room Code: {room.roomCode}</p>
+                <p className="text-slate-400 text-[11px] sm:text-sm mt-0.5 capitalize font-medium">Room Code: {room.roomCode}</p>
               </div>
             </div>
 
             <div className="text-right">
-              <div className={`text-xl font-bold ${isOverfilled ? 'text-red-600' : 'text-indigo-600'}`}>
+              <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-extrabold ${isOverfilled ? 'text-red-600' : 'text-indigo-600'}`}>
                 {currentStrength} / {room.roomCapacity}
               </div>
-              <div className="text-xs text-slate-500 font-medium">Capacity</div>
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Capacity</div>
             </div>
           </div>
         </div>
 
-        <div className="p-6 bg-slate-50/30">
-          <div className="grid md:grid-cols-2 gap-6">
+        <div className={`${isMobile ? 'p-3' : 'p-6'} bg-slate-50/30`}>
+          <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-4 sm:gap-6`}>
             {/* Leaders */}
             <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-              <div className="px-5 py-3 bg-blue-50 border-b border-slate-200 flex items-center justify-between">
-                <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wide">
-                  <FiUser className="text-blue-600 w-4 h-4" />
+              <div className={`${isMobile ? 'px-3 py-2' : 'px-5 py-3'} bg-blue-50 border-b border-slate-200 flex items-center justify-between`}>
+                <h3 className={`font-bold text-slate-800 ${isMobile ? 'text-xs' : 'text-sm'} flex items-center gap-2 uppercase tracking-wide`}>
+                  <FiUser className="text-blue-600 w-3.5 h-3.5" />
                   Room Leaders
                 </h3>
-                <span className="bg-blue-100 text-blue-700 text-xs font-black px-2.5 py-1 rounded-full">
+                <span className="bg-blue-100 text-blue-700 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full">
                   {filteredLeaders.length}
                 </span>
               </div>
-              <div className="p-4 space-y-3">
+              <div className={`${isMobile ? 'p-3' : 'p-4'} space-y-2.5`}>
                 {filteredLeaders.length === 0 ? (
-                  <div className="text-center py-6">
-                    <FiUser className="w-8 h-8 mx-auto opacity-20 mb-2" />
-                    <p className="text-xs text-slate-400">No leaders assigned</p>
+                  <div className="text-center py-4">
+                    <FiUser className="w-6 h-6 mx-auto opacity-20 mb-1" />
+                    <p className="text-[10px] text-slate-400">No leaders assigned</p>
                   </div>
                 ) : (
                   filteredLeaders.map((stayer) => {
@@ -611,22 +621,22 @@ const RoomDetails: React.FC = () => {
                     return (
                       <div
                         key={`leader-${stayer.id}`}
-                        className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-lg hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all group"
+                        className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-3'} bg-slate-50 border border-slate-100 rounded-lg hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all group`}
                       >
                         <div>
-                          <div className="font-bold text-slate-800 text-sm capitalize">{details.name}</div>
-                          <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
+                          <div className={`font-bold text-slate-800 ${isMobile ? 'text-[13px]' : 'text-sm'} capitalize`}>{details.name}</div>
+                          <div className={`text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5`}>
                             <span className="font-semibold text-blue-600 capitalize">{stayer.sourceSubGroup}</span>
                             <span>•</span>
                             <span>ID: #{details.id || 'N/A'}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           {/* Replacement button - Only show for admin/co-admin */}
                           {isAdmin() && (
                             <button
                               onClick={() => navigate(`/user/leader/replacement/${details.id}`)}
-                              className="text-[10px] font-bold bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm"
+                              className="text-[10px] font-bold bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm hidden sm:block"
                             >
                               Replacement
                             </button>
@@ -634,7 +644,7 @@ const RoomDetails: React.FC = () => {
 
                           <button
                             onClick={() => navigate(`/user/leader/${details.id}`)}
-                            className="text-[10px] font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                            className={`${isMobile ? 'text-[9px] px-2 py-1' : 'text-[10px] px-3 py-1.5'} font-bold bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm`}
                           >
                             Profile
                           </button>
@@ -649,21 +659,21 @@ const RoomDetails: React.FC = () => {
             {/* Students */}
             {!isSpecialTab && (
               <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                <div className="px-5 py-3 bg-green-50 border-b border-slate-200 flex items-center justify-between">
-                  <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 uppercase tracking-wide">
-                    <FiUsers className="text-green-600 w-4 h-4" />
+                <div className={`${isMobile ? 'px-3 py-2' : 'px-5 py-3'} bg-green-50 border-b border-slate-200 flex items-center justify-between`}>
+                  <h3 className={`font-bold text-slate-800 ${isMobile ? 'text-xs' : 'text-sm'} flex items-center gap-2 uppercase tracking-wide`}>
+                    <FiUsers className="text-green-600 w-3.5 h-3.5" />
                     Room Students
                   </h3>
-                  <span className="bg-green-100 text-green-700 text-xs font-black px-2.5 py-1 rounded-full">
+                  <span className="bg-green-100 text-green-700 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full">
                     {filteredStudents.length}
                   </span>
                 </div>
 
-                <div className="p-4 space-y-3">
+                <div className={`${isMobile ? 'p-3' : 'p-4'} space-y-2.5`}>
                   {filteredStudents.length === 0 ? (
-                    <div className="text-center py-6">
-                      <FiUsers className="w-8 h-8 mx-auto opacity-20 mb-2" />
-                      <p className="text-xs text-slate-400">No students assigned</p>
+                    <div className="text-center py-4">
+                      <FiUsers className="w-6 h-6 mx-auto opacity-20 mb-1" />
+                      <p className="text-[10px] text-slate-400">No students assigned</p>
                     </div>
                   ) : (
                     filteredStudents.map((stayer) => {
@@ -673,14 +683,14 @@ const RoomDetails: React.FC = () => {
                       return (
                         <div
                           key={`student-${stayer.id}`}
-                          className="flex items-center justify-between p-3 bg-slate-50 border border-slate-100 rounded-lg hover:bg-white hover:border-green-200 hover:shadow-sm transition-all group"
+                          className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-3'} bg-slate-50 border border-slate-100 rounded-lg hover:bg-white hover:border-green-200 hover:shadow-sm transition-all group`}
                         >
                           <div>
-                            <div className="font-bold text-slate-800 text-sm capitalize">
+                            <div className={`font-bold text-slate-800 ${isMobile ? 'text-[13px]' : 'text-sm'} capitalize`}>
                               {details.name.charAt(0).toUpperCase() + details.name.slice(1).toLowerCase()}
                             </div>
 
-                            <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-0.5">
+                            <div className={`text-[10px] text-slate-500 flex flex-wrap items-center gap-1.5 mt-0.5`}>
                               <span className="font-semibold text-green-600">{stayer.sourceSubGroup}</span>
                               <span>•</span>
                               <span>Age: {details.age}</span>
@@ -688,8 +698,8 @@ const RoomDetails: React.FC = () => {
 
                               <span
                                 className={`capitalize ${details.status === "registered" || details.status === "absent"
-                                  ? "text-red-600"
-                                  : "text-slate-700"
+                                  ? "text-red-600 font-bold"
+                                  : "text-slate-500 font-medium"
                                   }`}
                               >
                                 {details.status}
@@ -698,12 +708,12 @@ const RoomDetails: React.FC = () => {
                           </div>
 
                           {/* ACTION BUTTONS */}
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             {/* Replacement button - Only show for admin/co-admin */}
                             {isAdmin() && (
                               <button
                                 onClick={() => navigate(`/user/student/replacement/${details.id}`)}
-                                className="text-[10px] font-bold bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm"
+                                className="text-[10px] font-bold bg-white border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-600 hover:text-white hover:border-amber-600 transition-all shadow-sm hidden sm:block"
                               >
                                 Replacement
                               </button>
@@ -711,7 +721,7 @@ const RoomDetails: React.FC = () => {
 
                             <button
                               onClick={() => navigate(`/user/student/${details.id}`)}
-                              className="text-[10px] font-bold bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                              className={`${isMobile ? 'text-[9px] px-2 py-1' : 'text-[10px] px-3 py-1.5'} font-bold bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm`}
                             >
                               Profile
                             </button>
@@ -745,39 +755,39 @@ const RoomDetails: React.FC = () => {
       : filteredStudents.slice(0, 5);
 
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
+      <div className={`bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden ${isMobile ? 'mb-4' : ''}`}>
+        <div className={`${isMobile ? 'p-4' : 'p-6'}`}>
+          <div className={`flex items-center justify-between ${isMobile ? 'mb-4' : 'mb-6'}`}>
             <div>
-              <h2 className="text-2xl font-bold text-slate-800">Waiting List</h2>
-              <p className="text-slate-500 text-sm mt-1">People waiting for room assignment</p>
+              <h2 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-slate-800`}>Waiting List</h2>
+              <p className="text-slate-400 text-[11px] sm:text-sm mt-0.5">Queueing for room assignment</p>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-right">
-                <div className="text-lg font-bold text-amber-600">
+                <div className={`${isMobile ? 'text-base' : 'text-lg'} font-extrabold text-amber-600`}>
                   {filteredLeaders.length + filteredStudents.length}
                 </div>
-                <div className="text-xs text-slate-500">Total Waiting</div>
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total</div>
               </div>
-              <div className="h-10 w-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center">
-                <FiAlertTriangle className="w-5 h-5" />
+              <div className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'} bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center`}>
+                <FiAlertTriangle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
               </div>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className={`grid ${isMobile ? 'grid-cols-1' : 'md:grid-cols-2'} gap-4 sm:gap-6`}>
             {/* Leaders Column */}
-            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-              <div className="px-5 py-4 bg-blue-50 border-b border-slate-200 flex items-center justify-between">
-                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                  <FiUser className="text-blue-600" />
-                  Waiting Leaders
+            <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <div className={`${isMobile ? 'px-3 py-2' : 'px-5 py-4'} bg-blue-50 border-b border-slate-200 flex items-center justify-between`}>
+                <h3 className={`font-bold text-slate-800 ${isMobile ? 'text-xs' : 'text-sm'} flex items-center gap-2 uppercase tracking-wide`}>
+                  <FiUser className="text-blue-600 w-3.5 h-3.5" />
+                  Leaders
                 </h3>
-                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full">
+                <span className="bg-blue-100 text-blue-700 text-[10px] sm:text-xs font-black px-2 py-0.5 rounded-full">
                   {filteredLeaders.length}
                 </span>
               </div>
-              <div className="p-5">
+              <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
                 {filteredLeaders.length === 0 ? (
                   <div className="text-center py-8">
                     <FiUser className="w-10 h-10 mx-auto opacity-30" />
@@ -791,23 +801,23 @@ const RoomDetails: React.FC = () => {
                       return (
                         <div
                           key={`leader-${stayer.id}`}
-                          className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
+                          className={`flex items-center justify-between ${isMobile ? 'p-2' : 'p-3'} bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors border border-slate-100`}
                         >
                           <div>
-                            <div className="font-medium text-slate-800 capitalize">
+                            <div className={`font-bold text-slate-800 ${isMobile ? 'text-[13px]' : 'text-sm'} capitalize`}>
                               {details.name.charAt(0).toUpperCase() + details.name.slice(1).toLowerCase()}
                             </div>
-                            <div className="text-xs text-slate-500 flex items-center gap-2 mt-1">
+                            <div className={`text-[10px] text-slate-500 flex items-center gap-1.5 mt-0.5`}>
                               <span>ID: #{details.id}</span>
                               <span>•</span>
-                              <span>{stayer.sourceSubGroup}</span>
+                              <span className="font-medium text-blue-600">{stayer.sourceSubGroup}</span>
                             </div>
                           </div>
                           {/* Assign button - Only show for admin/co-admin */}
                           {isAdmin() && (
                             <button
                               onClick={() => navigate(`/user/leader/replacement/${details.id}`)}
-                              className="text-xs font-bold bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors"
+                              className={`${isMobile ? 'text-[9px] px-2 py-1' : 'text-xs px-3 py-1.5'} font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm`}
                             >
                               Assign
                             </button>
@@ -929,20 +939,20 @@ const RoomDetails: React.FC = () => {
     });
 
     return (
-      <div className="w-full space-y-6 mb-10">
+      <div className={`w-full ${isMobile ? 'space-y-4 mb-6' : 'space-y-6 mb-10'}`}>
         {/* Main Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div className={`flex items-center justify-between ${isMobile ? 'pb-2' : 'pb-4'} border-b border-slate-200`}>
           <div className="flex items-center gap-2">
-            <FiUserCheck className="text-indigo-600 w-5 h-5" />
-            <h2 className="text-lg font-bold text-slate-800 uppercase tracking-tight">With Leader List</h2>
+            <FiUserCheck className={`text-indigo-600 ${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+            <h2 className={`${isMobile ? 'text-sm' : 'text-lg'} font-bold text-slate-800 uppercase tracking-tight`}>With Leader List</h2>
           </div>
-          <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2 py-1 rounded">
-            {parentalStayers.length} TOTAL STUDENTS
+          <span className="text-[9px] font-black bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">
+            {parentalStayers.length} STUDENTS
           </span>
         </div>
 
         {/* Grid: Leader Boxes Side-by-Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-2'} gap-4 sm:gap-6`}>
           {[...leaderMap.entries()].map(([leaderId, items]) => {
             const leader = getLeaderById(leaderId, leaders);
 
@@ -952,29 +962,29 @@ const RoomDetails: React.FC = () => {
                 className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col"
               >
                 {/* Leader Header Box */}
-                <div className="px-5 py-4 bg-slate-50 border-b border-slate-200">
+                <div className={`${isMobile ? 'px-3 py-2.5' : 'px-5 py-4'} bg-slate-50 border-b border-slate-200`}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold shadow-sm">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`${isMobile ? 'h-8 w-8' : 'h-10 w-10'} rounded-full bg-indigo-600 flex items-center justify-center text-white font-extrabold text-xs shadow-sm`}>
                         {leader ? leader.name.charAt(0).toUpperCase() : '?'}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-slate-900 text-sm capitalize">
+                        <div className="flex items-center gap-1.5">
+                          <h3 className={`font-bold text-slate-900 ${isMobile ? 'text-[13px]' : 'text-sm'} capitalize`}>
                             {leader ? leader.name : `Leader #${leaderId}`}
                           </h3>
-                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm capitalize ${leader?.gender === 'male' ? 'bg-blue-500 text-white' : 'bg-pink-500 text-white'}`}>
+                          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded shadow-sm capitalize ${leader?.gender === 'male' ? 'bg-blue-500 text-white' : 'bg-pink-500 text-white'}`}>
                             {leader?.gender || 'N/A'}
                           </span>
                         </div>
-                        <p className="text-[10px] text-slate-500 font-medium mt-0.5 uppercase tracking-wide">
-                          Location: <span className="text-indigo-600">{leader?.place || 'Unknown'}</span>
+                        <p className="text-[9px] text-slate-400 font-bold mt-0.5 uppercase tracking-wide">
+                          <span className="text-indigo-600">{leader?.place || 'Unknown Location'}</span>
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="block text-[10px] font-bold text-slate-400 uppercase">Assigned</span>
-                      <span className="text-sm font-black text-slate-700">{items.length}</span>
+                      <span className="block text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Count</span>
+                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-black text-slate-700`}>{items.length}</span>
                     </div>
                   </div>
                 </div>
@@ -1047,22 +1057,12 @@ const RoomDetails: React.FC = () => {
   if (permissionLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate('/user/dashboard')}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-              >
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block capitalize">
-                {gender} Room Management
-              </h1>
-            </div>
-          </div>
-        </div>
+        {!isMobile && (
+          <StickyHeader
+            title={`${gender ? capitalize(gender) : 'Room'} Management`}
+            onBack={() => navigate('/user/dashboard')}
+          />
+        )}
         <RoomSkeleton />
       </div>
     );
@@ -1080,20 +1080,9 @@ const RoomDetails: React.FC = () => {
   if (!genderData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => navigate('/user/dashboard')}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-              >
-                <FiArrowLeft /> Back
-              </button>
-              <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-              <h1 className="text-lg font-bold text-slate-800 hidden sm:block">Room Management</h1>
-            </div>
-          </div>
-        </div>
+        {!isMobile && (
+          <StickyHeader title="Room Management" onBack={() => navigate('/user/dashboard')} />
+        )}
         <div className="max-w-6xl mx-auto px-4 mt-8 text-center py-12">
           <p className="text-slate-500">No data available for this gender.</p>
         </div>
@@ -1101,91 +1090,101 @@ const RoomDetails: React.FC = () => {
     );
   }
 
+  if (isMobile) {
+    const activeRoomObj = allFloorRooms.find((r) => r.roomName === activeRoom);
+    return (
+      <MobileRoomDetailView
+        gender={gender || ''}
+        activeRoom={activeRoom}
+        activeFloor={activeFloor}
+        activeSubGroup={activeSubGroup}
+        showKeyView={showKeyView}
+        showLeaderAssignView={showLeaderAssignView}
+        activeRoomObj={activeRoomObj}
+        renderRoom={renderRoom}
+        renderWaitingList={renderWaitingList}
+        renderWithLeaderList={renderWithLeaderList}
+        renderWithLeaderInRoomView={renderWithLeaderInRoomView}
+        getAllSubGroups={getAllSubGroups}
+        setActiveSubGroup={setActiveSubGroup}
+        capitalize={capitalize}
+        permissionData={permissionData}
+        KEY_TAB={KEY_TAB}
+        LEADER_ASSIGN_TAB={LEADER_ASSIGN_TAB}
+        WITH_LEADER_IN_ROOM_TAB={WITH_LEADER_IN_ROOM_TAB}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      {/* Header */}
-      <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12 capitalize">
+      <StickyHeader title={`${gender} Room Management`} onBack={() => navigate(-1)}>
+        <div className="flex items-center gap-3">
+          {/* Download Room Data button for admin/coadmin only */}
+          {isAdminOrCoAdmin(permissionData) && (
             <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium px-3 py-2 rounded-lg"
+              onClick={handleDownloadRoom}
+              disabled={downloadingRoom}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm ${downloadingRoom
+                ? 'bg-green-400 text-white cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700 hover:shadow'
+                }`}
+              title="Download room data as CSV"
             >
-              <FiArrowLeft className="w-4 h-4" /> Back
+              {downloadingRoom ? (
+                <>
+                  <FiLoader className="animate-spin w-4 h-4" /> Downloading...
+                </>
+              ) : (
+                <>
+                  <FiDownload className="w-4 h-4" /> Export Room Data
+                </>
+              )}
             </button>
-            <div className="h-5 w-[1px] bg-gray-300 hidden sm:block"></div>
-            <h1 className="text-lg font-bold text-slate-800 hidden sm:block capitalize">
-              {gender} Room Management
-            </h1>
-          </div>
+          )}
 
-          <div className="flex items-center gap-3">
-            {/* Download Room Data button for admin/coadmin only */}
-            {isAdminOrCoAdmin(permissionData) && (
-              <button
-                onClick={handleDownloadRoom}
-                disabled={downloadingRoom}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium shadow-sm ${downloadingRoom
-                    ? 'bg-green-400 text-white cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700 hover:shadow'
-                  }`}
-                title="Download room data as CSV"
-              >
-                {downloadingRoom ? (
-                  <>
-                    <FiLoader className="animate-spin w-4 h-4" /> Downloading...
-                  </>
-                ) : (
-                  <>
-                    <FiDownload className="w-4 h-4" /> Export Room Data
-                  </>
-                )}
-              </button>
-            )}
+          {/* Key Management and Room Leader buttons - only show when conditions are met */}
+          {!showKeyView && !showLeaderAssignView && activeFloor !== 'waiting' && activeFloor !== WITH_LEADER_LIST_TAB && (
+            <div className="flex items-center gap-2">
+              {/* Key Management button - only show if user has KEY_HANDING permission */}
+              {canHandleKeys() && (
+                <button
+                  onClick={() => {
+                    navigate(`/user/room/${gender}/${encodeURIComponent(activeRoom)}/${KEY_TAB}`);
+                    setActiveSubGroup(KEY_TAB);
+                    setShowKeyView(true);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all border ${activeSubGroup === KEY_TAB
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
+                    }`}
+                >
+                  <FiKey className={`w-4 h-4 ${activeSubGroup === KEY_TAB ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  Key Management
+                </button>
+              )}
 
-            {/* Key Management and Room Leader buttons - only show when conditions are met */}
-            {!showKeyView && !showLeaderAssignView && activeFloor !== 'waiting' && activeFloor !== WITH_LEADER_LIST_TAB && (
-              <div className="flex items-center gap-2">
-                {/* Key Management button - only show if user has KEY_HANDING permission */}
-                {canHandleKeys() && (
-                  <button
-                    onClick={() => {
-                      navigate(`/user/room/${gender}/${encodeURIComponent(activeRoom)}/${KEY_TAB}`);
-                      setActiveSubGroup(KEY_TAB);
-                      setShowKeyView(true);
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all border ${activeSubGroup === KEY_TAB
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
-                      }`}
-                  >
-                    <FiKey className={`w-4 h-4 ${activeSubGroup === KEY_TAB ? 'text-indigo-600' : 'text-slate-500'}`} />
-                    Key Management
-                  </button>
-                )}
-
-                {/* Room Leader button - only show if user has ROOM_LEADER_ASSIGN permission */}
-                {canAssignLeader() && (
-                  <button
-                    onClick={() => {
-                      navigate(`/user/room/${gender}/${encodeURIComponent(activeRoom)}/${LEADER_ASSIGN_TAB}`);
-                      setActiveSubGroup(LEADER_ASSIGN_TAB);
-                      setShowLeaderAssignView(true);
-                    }}
-                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all border ${activeSubGroup === LEADER_ASSIGN_TAB
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                      : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
-                      }`}
-                  >
-                    <FiUserCheck className={`w-4 h-4 ${activeSubGroup === LEADER_ASSIGN_TAB ? 'text-indigo-600' : 'text-slate-500'}`} />
-                    Room Leader
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+              {/* Room Leader button - only show if user has ROOM_LEADER_ASSIGN permission */}
+              {canAssignLeader() && (
+                <button
+                  onClick={() => {
+                    navigate(`/user/room/${gender}/${encodeURIComponent(activeRoom)}/${LEADER_ASSIGN_TAB}`);
+                    setActiveSubGroup(LEADER_ASSIGN_TAB);
+                    setShowLeaderAssignView(true);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all border ${activeSubGroup === LEADER_ASSIGN_TAB
+                    ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                    : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50 hover:border-slate-400"
+                    }`}
+                >
+                  <FiUserCheck className={`w-4 h-4 ${activeSubGroup === LEADER_ASSIGN_TAB ? 'text-indigo-600' : 'text-slate-500'}`} />
+                  Room Leader
+                </button>
+              )}
+            </div>
+          )}
         </div>
-      </div>
+      </StickyHeader>
 
       <div className="max-w-6xl mx-auto px-4 mt-8 space-y-6">
         {/* Single Search Bar */}

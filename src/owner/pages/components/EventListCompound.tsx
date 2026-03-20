@@ -104,79 +104,85 @@ const EventListCompound: React.FC<EventListCompoundProps> = ({
     <div className="relative w-full max-w-md" ref={dropdownRef}>
       {/* Selected View */}
       {selectedEvent ? (
-        <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-indigo-50/50 border border-indigo-200 rounded-xl shadow-sm transition-all hover:bg-indigo-50">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-indigo-600 text-white rounded-full p-2 shrink-0">
+            <div className="bg-indigo-600 text-white rounded-xl p-2.5 shrink-0 shadow-sm">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
                 <path fillRule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H3a1 1 0 00-1 1v10a1 1 0 001 1h14a1 1 0 001-1V6a1 1 0 00-1-1h-3a1 1 0 000-2h2a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5z" clipRule="evenodd" />
               </svg>
             </div>
             <div className="flex flex-col overflow-hidden flex-1">
-              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-tight">
-                Event #{selectedEvent.id}
+              <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest pl-0.5">
+                Event Assigned
               </span>
-              <span className="font-semibold text-slate-800 text-sm truncate">
+              <span className="font-bold text-slate-800 text-sm sm:text-base truncate capitalize">
                 {selectedEvent.eventName}
               </span>
-              <span className="text-slate-500 text-xs truncate">
-                {selectedEvent.email}
+              <span className="text-slate-500 text-xs truncate pl-0.5">
+                ID: #{selectedEvent.id} | {selectedEvent.email}
               </span>
             </div>
           </div>
-          <button onClick={clearSelection} className="text-slate-400 hover:text-red-500 transition-colors ml-2 shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <button onClick={clearSelection} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all ml-2 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
             </svg>
           </button>
         </div>
       ) : (
         <div
-          className="p-3 bg-white border border-slate-300 rounded-lg shadow-sm cursor-pointer hover:border-indigo-400 hover:bg-slate-50 transition-colors flex justify-between items-center"
+          className="p-3 sm:p-4 bg-white border border-slate-200 rounded-xl shadow-sm cursor-pointer hover:border-indigo-400 hover:bg-slate-50/50 transition-all flex justify-between items-center group"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
-          <span className="text-slate-500 text-sm">Select an Event</span>
-          <FiChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${isDropdownOpen ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500'} transition-colors`}>
+              <FiChevronDown className={`h-4 w-4 transition-transform duration-300 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </div>
+            <span className="text-slate-500 font-medium text-sm sm:text-base">Click to select an event...</span>
+          </div>
         </div>
       )}
 
       {/* Dropdown Menu */}
       {isDropdownOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-xl overflow-hidden">
+        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 origin-top">
           {/* Search */}
-          <div className="p-3 border-b border-slate-200 bg-slate-50">
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="block w-full px-3 py-2 text-sm border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="Search by event name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+            <div className="relative">
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="block w-full pl-3 pr-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-400"
+                placeholder="Find event by name..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
           {/* Advanced Filters */}
-          <div className="p-3 border-b border-slate-200 grid grid-cols-2 gap-2 bg-slate-50">
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">ID</label>
+          <div className="p-3 border-b border-slate-100 grid grid-cols-2 gap-3 bg-slate-50/30">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">ID Search</label>
               <input
                 type="text"
-                className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                placeholder="Event ID"
+                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                placeholder="ID #"
                 value={idFilter}
                 onChange={(e) => setIdFilter(e.target.value)}
               />
             </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Status</label>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Quick Status</label>
               <select
-                className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all cursor-pointer shadow-sm"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option value="">All</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="">Any Status</option>
+                <option value="active">Active Only</option>
+                <option value="inactive">Inactive Only</option>
               </select>
             </div>
           </div>

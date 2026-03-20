@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiLock, FiChevronLeft } from 'react-icons/fi';
 
 interface AccessAlertProps {
@@ -6,6 +7,7 @@ interface AccessAlertProps {
 }
 
 const AccessAlert: React.FC<AccessAlertProps> = ({ message }) => {
+  const navigate = useNavigate();
   return (
     /* Ensuring z-index (z-0) stays below NavBar (z-50) 
        as per your existing layout logic.
@@ -37,7 +39,7 @@ const AccessAlert: React.FC<AccessAlertProps> = ({ message }) => {
 
           {/* Action Button - Styled to match your NavBar's Indigo brand */}
           <button
-            onClick={() => window.location.href = '/user/dashboard'}
+            onClick={() => navigate('/user/dashboard', { replace: true })}
             className="mt-10 w-full py-4 bg-indigo-600 text-white hover:bg-indigo-700 transition-all duration-300 rounded-2xl text-[16px] font-bold shadow-lg shadow-indigo-600/20 active:scale-95 flex items-center justify-center gap-2 group"
           >
             <FiChevronLeft className="group-hover:-translate-x-1 transition-transform" />

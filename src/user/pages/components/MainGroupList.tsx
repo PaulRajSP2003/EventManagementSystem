@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import type { GroupStructure } from '../api/FollowingGroupData';
+import type { GroupStructure } from '../api/FollowingGroupDataAPI';
 
 // Types remain the same...
 interface MainGroupListProps {
@@ -24,9 +24,11 @@ const MainGroupList: React.FC<MainGroupListProps> = ({
   const availableGroups = useMemo(() => {
     const genderKey = selectedGender.toLowerCase() as 'male' | 'female';
     const genderGroups = structure[genderKey] || [];
-    return genderGroups.map(group => ({
-      groupName: group.groupName,
-    }));
+    return genderGroups
+      .map(group => ({
+        groupName: group.groupName,
+      }))
+      .sort((a, b) => a.groupName.localeCompare(b.groupName, undefined, { numeric: true, sensitivity: 'base' }));
   }, [structure, selectedGender]);
 
   const filteredGroups = useMemo(() => {
@@ -79,7 +81,7 @@ const MainGroupList: React.FC<MainGroupListProps> = ({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="fixed sm:absolute bottom-24 sm:bottom-auto sm:top-full left-4 right-4 sm:left-0 sm:right-auto z-[100] w-auto sm:w-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 min-w-[280px] max-w-[calc(100vw-2rem)]">
           <div className="p-3 border-b border-slate-50 bg-slate-50/50">
             <input
               autoFocus
@@ -90,7 +92,7 @@ const MainGroupList: React.FC<MainGroupListProps> = ({
             />
           </div>
 
-          <div className="max-h-64 overflow-y-auto p-2">
+          <div className="max-h-[40vh] sm:max-h-64 overflow-y-auto p-2">
             {filteredGroups.length === 0 ? (
               <div className="p-8 text-center text-sm text-slate-400 italic">No groups found</div>
             ) : (

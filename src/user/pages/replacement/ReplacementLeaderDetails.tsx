@@ -2,7 +2,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  FiArrowLeft,
   FiUser,
   FiMapPin,
   FiActivity,
@@ -20,6 +19,7 @@ import type { GroupStructure } from '../api/FollowingGroupDataAPI';
 import { replacementLeaderAPI, updateReplacementLeader } from '../api/ReplacementLeaderData';
 import AccessAlert from '../components/AccessAlert';
 import { isAdminOrCoAdmin, fetchPermissionData, type PermissionData } from '../permission';
+import { StickyHeader } from '../components';
 
 // ─── Skeleton Components ─────────────────────────────────────────────
 const ProfileSkeleton = () => (
@@ -252,6 +252,7 @@ const ReplacementLeaderDetailComponent = () => {
   const isPresent = status === "Present";
   const isRegistered = status === "Registered";
   const isAbsent = status === "Absent";
+  const isFullProgram = leader?.type === "fullProgram";
 
   const canEditMainGroup = (isPresent || isRegistered) && hasAccess();
   const canEditFollowingGroup = (isPresent || isRegistered) && selectedMainGroup !== "" && hasAccess();
@@ -317,27 +318,16 @@ const ReplacementLeaderDetailComponent = () => {
     (async () => {
       try {
         setIsSaving(true);
-
-        // Log what we're sending
-        
-
-        // Call the update API
         const updateResponse = await updateReplacementLeader(Number(id), changeJson);
 
-        
-
-        // Use the response data directly
         if (updateResponse) {
-          // Create updated leader object
           const updatedLeader = {
             ...leader,
             ...updateResponse,
-            // Ensure roomId is properly set from response
             roomId: updateResponse.roomId !== undefined ? String(updateResponse.roomId) : leader?.roomId,
             followingGroup: updateResponse.mentorGroup || leader?.followingGroup || "",
           };
 
-          // Add uiMainGroup if needed
           if (updateResponse.isFollowing) {
             const genderPrefix = updatedLeader.gender === 'male' ? 'M' : 'F';
             updatedLeader.uiMainGroup = updateResponse.isFollowing !== "no"
@@ -345,30 +335,17 @@ const ReplacementLeaderDetailComponent = () => {
               : "";
           }
 
-          
-          
-
-          // Update all state variables
           setOriginalData(updatedLeader);
           setLeader(updatedLeader);
-
-          // Update UI controls
           setStatus(updatedLeader.status.charAt(0).toUpperCase() + updatedLeader.status.slice(1));
           setSelectedMainGroup(updatedLeader.uiMainGroup || "");
           setSelectedFollowingGroup(updatedLeader.followingGroup || "");
-
-          // CRITICAL: Set roomId directly from response
-          // This will be "-1" for waiting list or actual room ID for assigned rooms
           setSelectedRoomId(updatedLeader.roomId || "");
-
-          // Reset dirty state
           setIsDirty(false);
         }
 
       } catch (err: any) {
         console.error('Update error:', err);
-        
-        // Check if it's a permission error
         const errorMsg = err instanceof Error ? err.message : 'Failed to update leader';
         if (errorMsg.toLowerCase().includes('forbidden') || 
             errorMsg.toLowerCase().includes('unauthorized') ||
@@ -396,399 +373,366 @@ const ReplacementLeaderDetailComponent = () => {
       .slice(0, 2);
   };
 
-  // ─── Header ────────────────────────────────────────────────────────
-  const Header = () => (
-    <div className="bg-white shadow-sm sticky top-0 z-10 px-4 py-[11px] border-b border-gray-100">
-      <div className="max-w-6xl mx-auto flex justify-between items-center min-h-[36px]">
 
-        {/* LEFT SIDE */}
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-medium"
-          >
-            <FiArrowLeft /> Back
-          </button>
-
-          <div className="h-4 w-[1px] bg-gray-300 hidden sm:block"></div>
-
-          <h1 className="text-lg font-bold text-slate-800 hidden sm:block">
-            Replacement Leader Detail
-          </h1>
-        </div>
-
-        {/* RIGHT SIDE — Reset | Profile | Save */}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-32">
+      <StickyHeader title="Replacement Leader Detail">
         {hasAccess() && (
           <div className="flex items-center gap-2 sm:gap-3">
-
-            {/* Reset */}
             {isDirty && (
               <button
                 onClick={handleReset}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-2 py-2 text-sm font-medium transition
-               text-rose-600 hover:text-rose-800 disabled:opacity-50"
+                className="flex items-center gap-2 px-2 py-2 text-sm font-medium transition text-rose-600 hover:text-rose-800 disabled:opacity-50"
               >
                 <FiRefreshCw className={isSaving ? "animate-spin" : ""} />
                 <span className="hidden sm:inline">Reset</span>
               </button>
             )}
 
-            {/* Save */}
             <button
               onClick={handleSave}
               disabled={!canSave || isSaving}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium  
-              ${canSave && !isSaving
+              className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition text-sm font-medium ${
+                canSave && !isSaving
                   ? "bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700"
                   : "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed opacity-70"
-                }`}
+              }`}
             >
-              {isSaving ? (
-                <FiLoader className="animate-spin" />
-              ) : (
-                <FiSave />
-              )}
-              <span className="hidden sm:inline">
-                {isSaving ? "Saving..." : "Save Changes"}
-              </span>
+              {isSaving ? <FiLoader className="animate-spin" /> : <FiSave />}
+              <span className="hidden sm:inline">{isSaving ? "Saving..." : "Save Changes"}</span>
             </button>
+          </div>
+        )}
+      </StickyHeader>
 
+      <div className="max-w-6xl mx-auto px-4 mt-6">
+        {permissionLoading ? (
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <ProfileSkeleton />
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                  <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-20 bg-slate-100 rounded-lg"></div>
+                    ))}
+                  </div>
+                  <div className="mt-10">
+                    <div className="h-8 w-64 bg-slate-200 rounded mb-6"></div>
+                    <AllocationSkeleton />
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                  <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
+                  <HistorySkeleton />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : !isAdmin || accessDenied || permissionError ? (
+          <div className="flex items-center justify-center py-20">
+            <AccessAlert message={errorMessage || "You do not have access to view this leader's details."} />
+          </div>
+        ) : loading ? (
+          <div className="animate-pulse">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <ProfileSkeleton />
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                  <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-20 bg-slate-100 rounded-lg"></div>
+                    ))}
+                  </div>
+                  <div className="mt-10">
+                    <div className="h-8 w-64 bg-slate-200 rounded mb-6"></div>
+                    <AllocationSkeleton />
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                  <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
+                  <HistorySkeleton />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : !leader ? (
+          <div className="py-20 text-center text-slate-500">Leader not found</div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="space-y-6">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="h-32 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+
+                <div className="px-6 pb-6 text-center -mt-12 relative">
+                  <div
+                    className="w-24 h-24 mx-auto bg-white p-1 rounded-full shadow-lg"
+                    style={{ border: `4px solid ${leader.tagColor || "#6366f1"}` }}
+                  >
+                    <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-indigo-600">
+                      {getInitials(leader.name)}
+                    </div>
+                  </div>
+
+                  <h1 className="text-2xl font-bold text-slate-800 mt-3 capitalize">{leader.name}</h1>
+
+                  <p className="text-slate-500 text-sm mt-1 capitalize">
+                    ID: #{leader.id} • {leader.place}
+                  </p>
+
+                  <div className="flex justify-center gap-2 mt-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                        status === "Present"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : status === "Registered"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {status}
+                    </span>
+
+                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-slate-100 text-slate-600 flex items-center gap-1">
+                      {leader.gender === "male" ? <FaMars /> : <FaVenus />}
+                      {leader.gender}
+                    </span>
+
+                    <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-indigo-100 text-indigo-700">
+                      {leader.type === "leader1" ? "Leader 1" : leader.type === "leader2" ? "Leader 2" : leader.type}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <button
+                  onClick={() => leader && navigate(`/user/leader/${leader.id}`)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition
+               border bg-indigo-50 border-indigo-200 text-indigo-700
+               hover:bg-indigo-100"
+                >
+                  <FiUser />
+                  <span className="hidden sm:inline">View Profile</span>
+                </button>
+              </div>
+
+              {!isAbsent && (
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                  <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                    <FiActivity className="text-indigo-500" /> Attendance Status
+                  </h3>
+                  <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium">
+                    {status}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                <SectionHeader icon={FiUser} title="Leader Personal Details" />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 capitalize">
+                  <InfoItem
+                    icon={FiMapPin}
+                    label="Place / City"
+                    value={
+                      leader.place
+                        ? (() => {
+                            const p = leader.place.split(",")[0].trim();
+                            return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+                          })()
+                        : "N/A"
+                    }
+                    color="text-red-500"
+                  />
+                  <InfoItem icon={FaChurch} label="Home Church" value={leader.churchName || "N/A"} color="text-amber-500" />
+                  <InfoItem icon={FiUser} label="Contact" value={leader.contactNumber || "N/A"} color="text-blue-500" />
+                  <InfoItem icon={FiUser} label="WhatsApp" value={leader.whatsappNumber || "N/A"} color="text-green-500" />
+                </div>
+
+                {!isAbsent && (
+                  <>
+                    <SectionHeader icon={FiRefreshCw} title="Replacement & Allocation" />
+
+                    <div className="grid gap-3 sm:gap-4 mt-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {!isFullProgram && leader?.isFollowing !== "no" && (
+                        <>
+                          <div
+                            className={`flex flex-col gap-2 p-3 rounded-xl border ${
+                              !canEditMainGroup ? "bg-gray-100 opacity-60" : "bg-slate-50"
+                            }`}
+                          >
+                            <label className="text-[10px] font-bold text-slate-400 uppercase">Main Group</label>
+                            {canEditMainGroup ? (
+                              groupStructure ? (
+                                <MainGroupList
+                                  structure={groupStructure}
+                                  selectedGender={leader.gender?.toLowerCase() === "male" ? "Male" : "Female"}
+                                  onGroupSelect={(groupName: string) => {
+                                    if (groupName !== selectedMainGroup) setSelectedFollowingGroup("");
+                                    setSelectedMainGroup(groupName);
+                                    setIsDirty(true);
+                                  }}
+                                  activeGroup={selectedMainGroup}
+                                  disabled={!hasAccess() || isSaving}
+                                />
+                              ) : (
+                                <div className="text-center py-2 text-gray-500">Loading groups...</div>
+                              )
+                            ) : (
+                              <div className="p-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg">
+                                {selectedMainGroup || "—"}
+                              </div>
+                            )}
+                          </div>
+
+                          <div
+                            className={`flex flex-col gap-2 p-3 rounded-xl border ${
+                              !canEditFollowingGroup
+                                ? "bg-gray-100 opacity-60"
+                                : isFollowingGroupMissing
+                                ? "border-rose-300 bg-rose-50"
+                                : "bg-slate-50"
+                            }`}
+                          >
+                            <label
+                              className={`text-[10px] font-bold uppercase ${
+                                isFollowingGroupMissing ? "text-rose-500" : "text-slate-400"
+                              }`}
+                            >
+                              Mentorship Group *
+                            </label>
+                            {canEditFollowingGroup && selectedMainGroup ? (
+                              groupStructure ? (
+                                <AvailableFollowingGroupList
+                                  structure={groupStructure}
+                                  gender={leader.gender?.toLowerCase() === "male" ? "Male" : "Female"}
+                                  mainGroup={selectedMainGroup}
+                                  selectedFollowingGroup={selectedFollowingGroup}
+                                  onSelectionChange={(val: string) => {
+                                    setSelectedFollowingGroup(val);
+                                    setIsDirty(true);
+                                  }}
+                                  leaderType={
+                                    leader.type === "leader1" ? "leader1" : leader.type === "leader2" ? "leader2" : undefined
+                                  }
+                                  isReplacementCase={true}
+                                  disabled={isSaving}
+                                />
+                              ) : (
+                                <div className="text-center py-2 text-gray-500">Loading groups...</div>
+                              )
+                            ) : (
+                              <div className="p-2 text-sm text-slate-400 bg-slate-100 rounded-lg">
+                                {selectedFollowingGroup || "None"}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {leader?.staying === "yes" && (
+                        <div
+                          className={`flex flex-col gap-2 p-3 rounded-xl border transition-all duration-300 shadow-sm ${
+                            selectedRoomId === "-1"
+                              ? "border-red-400 bg-red-50/50 animate-pulse-subtle"
+                              : !canEditRoom
+                              ? "bg-gray-100/60 opacity-60 border-gray-200"
+                              : "bg-white border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <label
+                              className={`text-[10px] font-bold uppercase tracking-wider ${
+                                selectedRoomId === "-1" ? "text-red-100" : "text-slate-500"
+                              }`}
+                            >
+                              Room
+                            </label>
+
+                            {selectedRoomId === "-1" && (
+                              <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold uppercase">
+                                Waiting List
+                              </span>
+                            )}
+                          </div>
+
+                          {canEditRoom ? (
+                            <RoomListCompound
+                              key={`room-${selectedRoomId}-${Date.now()}`}
+                              personType="leader"
+                              genderFilter={leader.gender as "male" | "female"}
+                              initialRoomId={selectedRoomId}
+                              activeRoomId={leader.id}
+                              onRoomSelect={(room: any) => {
+                                setSelectedRoomId(String(room?.roomId || ""));
+                                setIsDirty(true);
+                              }}
+                            />
+                          ) : (
+                            <div
+                              className={`p-2 text-xs font-semibold rounded-lg border border-dashed transition-colors duration-200 ${
+                                selectedRoomId === "-1"
+                                  ? "border-red-300 text-red-700 bg-red-50"
+                                  : "border-slate-200 text-slate-500 bg-slate-100"
+                              }`}
+                            >
+                              {selectedRoomId === "-1" ? "⚠️ No Room Assigned" : selectedRoomId || "Unassigned"}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {isAbsent && (
+                  <div className="mt-6 p-6 bg-amber-50 border border-amber-200 rounded-xl text-center">
+                    <FiClock className="text-amber-500 text-3xl mx-auto mb-2" />
+                    <h3 className="text-lg font-semibold text-amber-800">Leader is Absent</h3>
+                    <p className="text-amber-600 text-sm mt-1">
+                      No allocation or replacement options available for absent leaders.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
-    </div>
-  );
 
-  // Show loading while permissions are loading
-  if (permissionLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
-        <div className="max-w-6xl mx-auto px-4 mt-6 animate-pulse">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ProfileSkeleton />
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-20 bg-slate-100 rounded-lg"></div>
-                  ))}
-                </div>
-                <div className="mt-10">
-                  <div className="h-8 w-64 bg-slate-200 rounded mb-6"></div>
-                  <AllocationSkeleton />
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
-                <HistorySkeleton />
-              </div>
+      {/* Mobile Snackbar Actions - Slides from under the bottom nav */}
+      <div 
+        className={`fixed left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-[360px] z-40 sm:hidden transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) ${
+          hasAccess() && isDirty 
+            ? "bottom-24 translate-y-0 opacity-100 scale-100" 
+            : "bottom-0 translate-y-full opacity-0 scale-95 pointer-events-none"
+        }`}
+      >
+        <div className="bg-white/90 backdrop-blur-xl border border-slate-200 shadow-[0_8px_30px_rgb(0,0,0,0.08)] rounded-2xl p-3 flex items-center justify-between ring-1 ring-black/5">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-pulse" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-900 uppercase tracking-widest leading-none">Changes Pending</span>
+              <span className="text-[10px] text-slate-500 font-medium mt-0.5">Leader allocation updated</span>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show access denied if not admin/co-admin OR if API returned 403
-  if (!isAdmin || accessDenied || permissionError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center">
-        <AccessAlert message={errorMessage || "You do not have access to view this leader's details."} />
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-        <Header />
-        <div className="max-w-6xl mx-auto px-4 mt-6 animate-pulse">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <ProfileSkeleton />
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-20 bg-slate-100 rounded-lg"></div>
-                  ))}
-                </div>
-                <div className="mt-10">
-                  <div className="h-8 w-64 bg-slate-200 rounded mb-6"></div>
-                  <AllocationSkeleton />
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-                <div className="h-8 w-48 bg-slate-200 rounded mb-6"></div>
-                <HistorySkeleton />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!leader) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <Header />
-        <div className="max-w-6xl mx-auto px-4 py-20 text-center text-slate-500">
-          Leader not found
-        </div>
-      </div>
-    );
-  }
-
-  const isFullProgram = leader.isFollowing === "no";
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 pb-12">
-      <Header />
-
-      <div className="max-w-6xl mx-auto px-4 mt-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Left Column: Profile + Status (read-only if absent) */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="h-32 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
-
-              <div className="px-6 pb-6 text-center -mt-12 relative">
-                <div
-                  className="w-24 h-24 mx-auto bg-white p-1 rounded-full shadow-lg"
-                  style={{ border: `4px solid ${leader.tagColor || '#6366f1'}` }}
-                >
-                  <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center text-2xl font-bold text-indigo-600">
-                    {getInitials(leader.name)}
-                  </div>
-                </div>
-
-                <h1 className="text-2xl font-bold text-slate-800 mt-3 capitalize">
-                  {leader.name}
-                </h1>
-
-                <p className="text-slate-500 text-sm mt-1 capitalize">
-                  ID: #{leader.id} • {leader.place}
-                </p>
-
-                <div className="flex justify-center gap-2 mt-4">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${status === "Present"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : status === "Registered"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-slate-100 text-slate-600"
-                      }`}
-                  >
-                    {status}
-                  </span>
-
-                  <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-slate-100 text-slate-600 flex items-center gap-1">
-                    {leader.gender === "male" ? <FaMars /> : <FaVenus />}
-                    {leader.gender}
-                  </span>
-
-                  <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-indigo-100 text-indigo-700">
-                    {leader.type === "leader1"
-                      ? "Leader 1"
-                      : leader.type === "leader2"
-                        ? "Leader 2"
-                        : leader.type}
-                  </span>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-              <button
-                onClick={() => leader && navigate(`/user/leader/${leader.id}`)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition
-               border bg-indigo-50 border-indigo-200 text-indigo-700
-               hover:bg-indigo-100"
-              >
-                <FiUser />
-                <span className="hidden sm:inline">View Profile</span>
-              </button>
-            </div>
-
-            {/* Attendance Status - completely removed for absent, read-only display for others */}
-            {!isAbsent && (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <FiActivity className="text-indigo-500" /> Attendance Status
-                </h3>
-                <div className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium">
-                  {status}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Details + Allocation (hide allocation if absent) */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
-              <SectionHeader icon={FiUser} title="Leader Personal Details" />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 capitalize">
-                <InfoItem
-                  icon={FiMapPin}
-                  label="Place / City"
-                  value={
-                    leader.place
-                      ? (() => {
-                        const p = leader.place.split(',')[0].trim();
-                        return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
-                      })()
-                      : 'N/A'
-                  }
-                  color="text-red-500"
-                />
-                <InfoItem
-                  icon={FaChurch}
-                  label="Home Church"
-                  value={leader.churchName || 'N/A'}
-                  color="text-amber-500"
-                />
-                <InfoItem icon={FiUser} label="Contact" value={leader.contactNumber || 'N/A'} color="text-blue-500" />
-                <InfoItem icon={FiUser} label="WhatsApp" value={leader.whatsappNumber || 'N/A'} color="text-green-500" />
-              </div>
-
-              {/* Replacement & Allocation Section - Hidden completely when absent */}
-              {!isAbsent && (
-                <>
-                  <SectionHeader icon={FiRefreshCw} title="Replacement & Allocation" />
-
-                  <div className="grid gap-4 mt-4 grid-cols-1 md:grid-cols-3">
-                    {/* ── Only show Main & Mentorship Group if NOT Full Program ── */}
-                    {!isFullProgram && (
-                      <>
-                        {/* Main Group */}
-                        <div className={`flex flex-col gap-2 p-3 rounded-xl border ${!canEditMainGroup ? "bg-gray-100 opacity-60" : "bg-slate-50"
-                          }`}>
-                          <label className="text-[10px] font-bold text-slate-400 uppercase">Main Group</label>
-                          {canEditMainGroup ? (
-                            groupStructure ? (
-                              <MainGroupList
-                                structure={groupStructure}
-                                selectedGender={leader.gender === 'male' ? 'Male' : 'Female'}
-                                onGroupSelect={(groupName: string) => {
-                                  if (groupName !== selectedMainGroup) setSelectedFollowingGroup("");
-                                  setSelectedMainGroup(groupName);
-                                  setIsDirty(true);
-                                }}
-                                activeGroup={selectedMainGroup}
-                                disabled={!hasAccess() || isSaving}
-                              />
-                            ) : (
-                              <div className="text-center py-2 text-gray-500">Loading groups...</div>
-                            )
-                          ) : (
-                            <div className="p-2 text-sm font-medium text-slate-700 bg-slate-100 rounded-lg">
-                              {selectedMainGroup || "—"}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Mentorship Group */}
-                        <div className={`flex flex-col gap-2 p-3 rounded-xl border ${!canEditFollowingGroup ? "bg-gray-100 opacity-60" :
-                          isFollowingGroupMissing ? "border-rose-300 bg-rose-50" : "bg-slate-50"
-                          }`}>
-                          <label className={`text-[10px] font-bold uppercase ${isFollowingGroupMissing ? "text-rose-500" : "text-slate-400"
-                            }`}>
-                            Mentorship Group *
-                          </label>
-                          {canEditFollowingGroup && selectedMainGroup ? (
-                            groupStructure ? (
-                              <AvailableFollowingGroupList
-                                structure={groupStructure}
-                                gender={leader.gender === 'male' ? 'Male' : 'Female'}
-                                mainGroup={selectedMainGroup}
-                                selectedFollowingGroup={selectedFollowingGroup}
-                                onSelectionChange={(val: string) => {
-                                  setSelectedFollowingGroup(val);
-                                  setIsDirty(true);
-                                }}
-                                leaderType={leader.type === 'leader1' ? 'leader1' : leader.type === 'leader2' ? 'leader2' : undefined}
-                                isReplacementCase={true}
-                                disabled={isSaving}
-                              />
-                            ) : (
-                              <div className="text-center py-2 text-gray-500">Loading groups...</div>
-                            )
-                          ) : (
-                            <div className="p-2 text-sm text-slate-400 bg-slate-100 rounded-lg">
-                              {selectedFollowingGroup || "None"}
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    )}
-
-                    {/* Room — Always shown if staying, but only when not absent */}
-                    {leader?.staying === "yes" && (
-                      <div
-                        className={`flex flex-col gap-2 p-3 rounded-xl border transition-all duration-300 shadow-sm ${selectedRoomId === "-1"
-                          ? "border-red-400 bg-red-50/50 animate-pulse-subtle"
-                          : !canEditRoom
-                            ? "bg-gray-100/60 opacity-60 border-gray-200"
-                            : "bg-white border-slate-200 hover:border-slate-300"
-                          }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <label className={`text-[10px] font-bold uppercase tracking-wider ${selectedRoomId === "-1" ? "text-red-600" : "text-slate-500"
-                            }`}>
-                            Room
-                          </label>
-
-                          {/* Visual Indicator for Error State */}
-                          {selectedRoomId === "-1" && (
-                            <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold uppercase">
-                              Waiting List
-                            </span>
-                          )}
-                        </div>
-
-                        {canEditRoom ? (
-                          <RoomListCompound
-                            key={`room-${selectedRoomId}-${Date.now()}`}
-                            personType="leader"
-                            genderFilter={leader.gender as "male" | "female"}
-                            initialRoomId={selectedRoomId}
-                            activeRoomId={leader.id}
-                            onRoomSelect={(room: any) => {
-                              setSelectedRoomId(String(room?.roomId || ""));
-                              setIsDirty(true);
-                            }}
-                          />
-                        ) : (
-                          <div className={`p-2 text-xs font-semibold rounded-lg border border-dashed transition-colors duration-200 ${selectedRoomId === "-1"
-                            ? "border-red-300 text-red-700 bg-red-50"
-                            : "border-slate-200 text-slate-500 bg-slate-100"
-                            }`}>
-                            {selectedRoomId === "-1" ? "⚠️ No Room Assigned" : (selectedRoomId || "Unassigned")}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Show a message when absent */}
-              {isAbsent && (
-                <div className="mt-6 p-6 bg-amber-50 border border-amber-200 rounded-xl text-center">
-                  <FiClock className="text-amber-500 text-3xl mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-amber-800">Leader is Absent</h3>
-                  <p className="text-amber-600 text-sm mt-1">
-                    No allocation or replacement options available for absent leaders.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
+          <button
+            onClick={handleSave}
+            disabled={!canSave || isSaving}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs tracking-widest transition-all ${
+              canSave && !isSaving 
+                ? "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95 shadow-md shadow-indigo-200" 
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            {isSaving ? <FiLoader className="animate-spin" size={14} /> : <FiSave size={14} />}
+            {isSaving ? "SAVING..." : "SAVE NOW"}
+          </button>
         </div>
       </div>
     </div>

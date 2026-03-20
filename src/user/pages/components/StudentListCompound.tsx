@@ -28,7 +28,14 @@ const StudentListCompound: React.FC<StudentListCompoundProps> = ({ onStudentSele
         setLoading(true);
         setError(null);
         const studentData = await studentAPI.getStudents();
-        setStudents(studentData);
+        // Deduplicate students by ID to prevent duplicate keys in the list
+        const uniqueStudentsMap = new Map();
+        studentData.forEach(s => {
+          if (s.id && !uniqueStudentsMap.has(s.id)) {
+            uniqueStudentsMap.set(s.id, s);
+          }
+        });
+        setStudents(Array.from(uniqueStudentsMap.values()));
       } catch (err) {
         console.error('Failed to fetch students:', err);
         setError('Failed to load students');
@@ -245,9 +252,9 @@ const StudentListCompound: React.FC<StudentListCompoundProps> = ({ onStudentSele
                 {error}
               </div>
             ) : filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
+              filteredStudents.map((student, index) => (
                 <div
-                  key={student.id}
+                  key={`${student.id}-${index}`}
                   className="px-3 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-900 cursor-pointer transition-colors flex items-center text-sm"
                   onClick={() => handleStudentSelect(student)}
                 >

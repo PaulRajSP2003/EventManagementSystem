@@ -1,7 +1,8 @@
 // src/api/AdminData.ts
 import type { Admin } from '../../types';
+import { API_BASE } from '../../config/api';
 
-const BASE_URL = 'https://localhost:7135/api/owner/';
+const BASE_URL = `${API_BASE}/owner/`;
 
 const getHeaders = () => {
   return {

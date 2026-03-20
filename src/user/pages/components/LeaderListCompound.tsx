@@ -2,18 +2,20 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Leader } from '../../../types';
 import { leaderAPI } from '../api/LeaderData';
 import { useAuth } from '../../../owner/context/AuthContext';
+import { fetchPermissionData, type PermissionData } from '../permission';
 
 interface LeaderListCompoundProps {
   onLeaderSelect: (leader: Leader | null) => void;
   initialLeaderId?: number;
   availableLeaders?: Leader[];
+  excludeIds?: number[];
 }
 
 const LeaderListCompound: React.FC<LeaderListCompoundProps> = ({
   onLeaderSelect,
   initialLeaderId,
   availableLeaders,
-
+  excludeIds,
 }) => {
   // --- Get auth context ---
   const { ownerEmail } = useAuth();
@@ -21,6 +23,7 @@ const LeaderListCompound: React.FC<LeaderListCompoundProps> = ({
   // --- State ---
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(false);
+  const [permissionData, setPermissionData] = useState<PermissionData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedLeader, setSelectedLeader] = useState<Leader | null>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -74,6 +77,19 @@ const LeaderListCompound: React.FC<LeaderListCompoundProps> = ({
     fetchLeaders();
   }, [ownerEmail, availableLeaders]);
 
+  // Fetch Permissions
+  useEffect(() => {
+    const getPermissions = async () => {
+      try {
+        const data = await fetchPermissionData();
+        setPermissionData(data);
+      } catch (err) {
+        console.error('Error fetching permissions in LeaderListCompound:', err);
+      }
+    };
+    getPermissions();
+  }, []);
+
   // --- Effects ---
   useEffect(() => {
     if (initialLeaderId !== undefined && leaders.length > 0) {
@@ -106,8 +122,9 @@ const LeaderListCompound: React.FC<LeaderListCompoundProps> = ({
     const matchesId = idFilter === '' || leader.id?.toString().includes(idFilter);
     const matchesFollowing = isFollowingFilter === '' ||
       (isFollowingFilter === 'no' ? leader.isFollowing === 'no' : leader.isFollowing?.toUpperCase() === isFollowingFilter.toUpperCase());
+    const isExcluded = excludeIds?.includes(leader.id);
 
-    return matchesName && matchesPlace && matchesType && matchesId && matchesFollowing;
+    return matchesName && matchesPlace && matchesType && matchesId && matchesFollowing && !isExcluded;
   });
 
   const handleLeaderSelect = (leader: Leader) => {
@@ -214,9 +231,11 @@ const LeaderListCompound: React.FC<LeaderListCompoundProps> = ({
                 disabled={loading}
               >
                 <option value="">All</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
+                {permissionData?.groups?.map((group) => (
+                  <option key={group} value={group.toLowerCase()}>
+                    {group}
+                  </option>
+                ))}
                 <option value="no">No</option>
               </select>
             </div>
